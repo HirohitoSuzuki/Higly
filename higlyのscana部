@@ -1,0 +1,74 @@
+---- header
+require 'strscan'
+
+---- inner
+def parse(f)
+  @q = []
+
+  f.each do |line|
+    line.strip!
+    scanner = StringScanner.new(line)
+    until scanner.eos?
+      if scanner.match?(/\A%expression/)
+        @q << [:EXP, scanner.scan(/\A%expression/)]
+      elsif scanner.match?(/\Aleft/)
+        @q << [:LEFT, scanner.scan(/\Aleft/)]
+      elsif scanner.match?(/\Aright/)
+        @q << [:RIGHT, scanner.scan(/\Aright/)]
+      elsif scanner.match?(/\A@/)
+        @q << [:OP, scanner.scan(/\A@/)]
+      elsif scanner.match?(/\A(0|[1-9]\d*)\.\d+/)
+        @q << [:NUM, scanner.scan(/\A(0|[1-9]\d*)\.\d+/)]
+      elsif scanner.match?(/\A(0|[1-9])\d*/)
+        @q << [:NUM, scanner.scan(/\A(0|[1-9]\d*)/)]
+      elsif scanner.match?(/\A"\S*"/)
+        @q << [:S_LITERAL, scanner.scan(/\A"\S*"/)]
+      elsif scanner.match?(/\A\(/)
+        @q << ['(', scanner.scan(/\A\(/)]
+      elsif scanner.match?(/\A\)/)
+        @q << [')', scanner.scan(/\A\)/)]
+      elsif scanner.match?(/\A,/)
+        @q << [',', scanner.scan(/\A,/)]
+      elsif scanner.match?(/\A;/)
+        @q << [';', scanner.scan(/\A;/)]
+      elsif scanner.match?(/\A:/)
+        @q << [':', scanner.scan(/\A:/)]
+      elsif scanner.match?(/\A\|/)
+        @q << ['|', scanner.scan(/\A\|/)]
+      elsif scanner.match?(/\A[a-zA-Z_]\w*/)
+        @q << [:IDENTIFIER, scanner.scan(/\A[a-zA-Z_]\w*/)]
+      elsif scanner.match?(/\A./)
+        scanner.skip(/\A./)
+      end
+    end
+  end
+  @q << [false, '$']
+  do_parse
+end
+
+def next_token
+  @q.shift
+end
+
+---- footer
+
+parser = HiglyParser.new
+if ARGV[0] then
+  File.open(ARGV[0]) do |f|
+    parser.parse f
+  end
+else
+  puts "file is nothing. input code."
+  parser.parse $stdin
+end
+
+{
+      if val[1] =~ /\w+/ then
+        @term[val[1]] = val[1].upcase
+      elsif val[1].size == 1 then
+        @term[val[1]] = "\'#{val[1]}\'"
+      else
+        @term[val[1]] = "OP#{@termno}"
+        @termno += 1
+      end
+    }

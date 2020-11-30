@@ -1,0 +1,66 @@
+%expression(left)
+
+commmaExpression
+  : x","x
+  ;
+
+assignExpression(right)
+  : x"="x | x"+="x | x"-="x | x"*="x | x"/="x | x"%="x | x"<<="x
+  | x">>="x | x"&="x | x"^="x | x"|="x
+  ;
+
+conditionExpression
+  : x"?"x":"x
+  ;
+
+boolOr
+  : x"||"x
+  ;
+
+boolAnd
+  : x"&&"x
+  ;
+
+bitwiseOr
+  : x"|"x
+  ;
+
+bitwiseXor
+  : x"^"x
+  ;
+
+bitwiseAnd
+  : x"&"x
+  ;
+
+equaltiveExpression
+  : x"=="x | x"=!"x
+  ;
+
+rerativeExpression(%nonassoc)
+  : x"<"x | x">"x | x"<="x | x">="x
+  ;
+
+additiveExpression
+  : x"+"x | x"-"x
+  ;
+
+multplecativeExpression
+  : x"*"x | x"/"x | x"%"x
+  ;
+
+castExpression
+  : "(type_name)"x
+  ;
+
+unaryExpression
+  : "++"x | "--"x | "sizeof"x | "~"x | "!"x | "+"x | "-"x | "&"x | "*"x
+  ;
+
+paClass.postfixExpression
+  : x"++" | x"--"
+  ;
+  
+paClass.awaitExpression
+  : "await"x | "+" x x
+  ;
