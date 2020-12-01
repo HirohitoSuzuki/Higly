@@ -380,7 +380,7 @@ module_eval(<<'.,.,', 'higly_racc.y', 57)
 module_eval(<<'.,.,', 'higly_racc.y', 63)
   def _reduce_14(val, _values, result)
           token_register(val[0])
-      result = OpRegistry.new(1, [@operators[val[0]], 1])
+      result = OpRegistry.new(1, [val[0], 1])
     
     result
   end
@@ -389,7 +389,7 @@ module_eval(<<'.,.,', 'higly_racc.y', 63)
 module_eval(<<'.,.,', 'higly_racc.y', 68)
   def _reduce_15(val, _values, result)
           token_register(val[0])
-      result = OpRegistry.new(1, [@operators[val[0]],2+val[3]])
+      result = OpRegistry.new(1, [val[0],2+val[3]])
     
     result
   end
@@ -398,7 +398,7 @@ module_eval(<<'.,.,', 'higly_racc.y', 68)
 module_eval(<<'.,.,', 'higly_racc.y', 73)
   def _reduce_16(val, _values, result)
           token_register(val[1])
-      result = OpRegistry.new(1, [1, @operators[val[1]]])
+      result = OpRegistry.new(1, [1, val[1]])
     
     result
   end
@@ -407,7 +407,7 @@ module_eval(<<'.,.,', 'higly_racc.y', 73)
 module_eval(<<'.,.,', 'higly_racc.y', 78)
   def _reduce_17(val, _values, result)
           token_register(val[3])
-      result = OpRegistry.new(1, [2+val[2], @operators[val[3]]])
+      result = OpRegistry.new(1, [2+val[2], val[3]])
     
     result
   end
@@ -416,7 +416,7 @@ module_eval(<<'.,.,', 'higly_racc.y', 78)
 module_eval(<<'.,.,', 'higly_racc.y', 83)
   def _reduce_18(val, _values, result)
           token_register(val[1])
-      result = OpRegistry.new(2, [1, @operators[val[1]], 1])
+      result = OpRegistry.new(2, [1, val[1], 1])
     
     result
   end
@@ -426,7 +426,7 @@ module_eval(<<'.,.,', 'higly_racc.y', 88)
   def _reduce_19(val, _values, result)
           token_register(val[1])
       token_register(val[3])
-      result = OpRegistry.new(3, [1, @operators[val[1]], 1, @operators[val[3]], 1])
+      result = OpRegistry.new(3, [1, val[1], 1, val[3], 1])
     
     result
   end
@@ -454,7 +454,6 @@ end   # class HiglyParser
 
 
 parser = HiglyParser.new
-exp = Expression.new
 if ARGV[0] then
   File.open(ARGV[0]) do |f|
     parser.parse f
@@ -468,9 +467,12 @@ if ARGV[0] then
     f2 = File.open("higly.y", "w")
   end
 
-  lex = exp.make_lex(parser.operators)
-  yacc = exp.make_yacc_header(parser.opclasses)
-  yacc += exp.make_yacc_inner(parser.opclasses)
+  
+  exp = Expression.new(parser.operators, parser.opclasses)
+
+  lex = exp.make_lex()
+  yacc = exp.make_yacc_definition()
+  yacc += exp.make_yacc_rule()
 
   f1.puts(lex)
   f2.puts(yacc)

@@ -62,33 +62,33 @@ rule
     : S_LITERAL IDENTIFIER
     {
       token_register(val[0])
-      result = OpRegistry.new(1, [@operators[val[0]], 1])
+      result = OpRegistry.new(1, [val[0], 1])
     }
     | S_LITERAL IDENTIFIER IDENTIFIER operands
     {
       token_register(val[0])
-      result = OpRegistry.new(1, [@operators[val[0]],2+val[3]])
+      result = OpRegistry.new(1, [val[0],2+val[3]])
     }
     | IDENTIFIER S_LITERAL
     {
       token_register(val[1])
-      result = OpRegistry.new(1, [1, @operators[val[1]]])
+      result = OpRegistry.new(1, [1, val[1]])
     }
     | IDENTIFIER IDENTIFIER operands S_LITERAL
     {
       token_register(val[3])
-      result = OpRegistry.new(1, [2+val[2], @operators[val[3]]])
+      result = OpRegistry.new(1, [2+val[2], val[3]])
     }
     | IDENTIFIER S_LITERAL IDENTIFIER
     {
       token_register(val[1])
-      result = OpRegistry.new(2, [1, @operators[val[1]], 1])
+      result = OpRegistry.new(2, [1, val[1], 1])
     }
     | IDENTIFIER S_LITERAL IDENTIFIER S_LITERAL IDENTIFIER
     {
       token_register(val[1])
       token_register(val[3])
-      result = OpRegistry.new(3, [1, @operators[val[1]], 1, @operators[val[3]], 1])
+      result = OpRegistry.new(3, [1, val[1], 1, val[3], 1])
     }
 
   operands
@@ -216,7 +216,6 @@ end
 ---- footer
 
 parser = HiglyParser.new
-exp = Expression.new
 if ARGV[0] then
   File.open(ARGV[0]) do |f|
     parser.parse f
@@ -230,9 +229,12 @@ if ARGV[0] then
     f2 = File.open("higly.y", "w")
   end
 
-  lex = exp.make_lex(parser.operators)
-  yacc = exp.make_yacc_header(parser.opclasses)
-  yacc += exp.make_yacc_inner(parser.opclasses)
+  
+  exp = Expression.new(parser.operators, parser.opclasses)
+
+  lex = exp.make_lex()
+  yacc = exp.make_yacc_definition()
+  yacc += exp.make_yacc_rule()
 
   f1.puts(lex)
   f2.puts(yacc)
