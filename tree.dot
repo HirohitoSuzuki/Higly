@@ -1,0 +1,15 @@
+graph type{
+dpi="200";
+node [fontname="DejaVu Serif Italic"];
+symbol2;
+symbol6;
+symbol1 -- symbol2, symbol6;
+symbol1[label = "+"];
+symbol2[label = "INT_LITERAL"];
+symbol6[label = "INT_LITERAL"];
+symbol11;
+symbol0 -- symbol1, symbol11;
+symbol0[label = "+"];
+symbol1[label = "+"];
+symbol11[label = "INT_LITERAL"];
+}

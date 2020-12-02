@@ -1,3 +1,5 @@
+D			[0-9]
+L			[a-zA-Z_]
 %%
 ","  { return(','); }
 "="  { return('='); }
@@ -36,3 +38,9 @@
 "(type_name)"  { return(OP17); }
 "++"  { return(OP20); }
 "--"  { return(OP21); }
+"+@+"  { return(OP22); }
+{L}({L}|{D})*  { return (IDENTIFIER);}
+[1-9]{D}*  { return(INT_LITERAL); }
+"0"  { return(INT_LITERAL); }
+{D}+"."{D}+  { return(FLOAT_LITERAL); }
+L?\"(\\.|[^\\"\n])*\"  { return(STRING_LITERAL); }

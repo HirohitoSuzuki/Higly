@@ -5,6 +5,13 @@ rule
     {
       val[1].last.prename = "primaryExpression"
       @opclasses = val[1]
+      @acheck = false
+    }
+    | exp_head ACHECK expstmts
+    {
+      val[2].last.prename = "primaryExpression"
+      @opclasses = val[2]
+      @acheck = true
     }
   
   exp_head
@@ -30,12 +37,12 @@ rule
   expstmt
     : IDENTIFIER '.' IDENTIFIER ':' expfig ';'
     {
-      result = OpClassRegistry.new(val[0], 0, [OpRegistry.new(1, [1])])
+      result = OpClassRegistry.new(val[0], 0, nil)
       result.child = OpClassRegistry.new(val[2], @default_assoc, val[4])
     }
     | IDENTIFIER '.' IDENTIFIER '(' assoc ')' ':' expfig ';'
     {
-      result = OpClassRegistry.new(val[0], 0, [OpRegistry.new(1, [1])])
+      result = OpClassRegistry.new(val[0], 0, nil)
       result.child = OpClassRegistry.new(val[2], val[4], val[7])
     }
     | IDENTIFIER ':' expfig ';'
@@ -62,33 +69,33 @@ rule
     : S_LITERAL IDENTIFIER
     {
       token_register(val[0])
-      result = OpRegistry.new(1, [val[0], 1])
+      result = OpRegistry.new(:left, [val[0]], 1)
     }
     | S_LITERAL IDENTIFIER IDENTIFIER operands
     {
       token_register(val[0])
-      result = OpRegistry.new(1, [val[0],2+val[3]])
+      result = OpRegistry.new(:left, [val[0]], 2+val[3])
     }
     | IDENTIFIER S_LITERAL
     {
       token_register(val[1])
-      result = OpRegistry.new(1, [1, val[1]])
+      result = OpRegistry.new(:right, [val[1]], 1)
     }
     | IDENTIFIER IDENTIFIER operands S_LITERAL
     {
       token_register(val[3])
-      result = OpRegistry.new(1, [2+val[2], val[3]])
+      result = OpRegistry.new(:right, [val[3]], 2+val[2])
     }
     | IDENTIFIER S_LITERAL IDENTIFIER
     {
       token_register(val[1])
-      result = OpRegistry.new(2, [1, val[1], 1])
+      result = OpRegistry.new(:binary, [val[1]], 1)
     }
     | IDENTIFIER S_LITERAL IDENTIFIER S_LITERAL IDENTIFIER
     {
       token_register(val[1])
       token_register(val[3])
-      result = OpRegistry.new(3, [1, val[1], 1, val[3], 1])
+      result = OpRegistry.new(:ternary, [val[1],val[3]], 1)
     }
 
   operands
@@ -114,12 +121,13 @@ class OpClassRegistry
 end
 
 class OpRegistry
-  def initialize(kind, op_list)
+  def initialize(kind, operators, operand)
     @kind = kind
-    @op_list = op_list
+    @operators = operators
+    @operand = operand
   end
 
-  attr_reader :kind, :op_list
+  attr_reader :kind, :operators, :operand
 end
 
 class OpCode
@@ -135,7 +143,7 @@ class OpCode
 end
 
 ---- inner
-attr_reader :opclasses, :operators
+attr_reader :opclasses, :operators, :acheck
 
 def parse(f)
   @q = []
@@ -156,6 +164,8 @@ def parse(f)
         @q << [:RIGHT, $&]
       when /\Anonassoc/
         @q << [:NONASSOC, $&]
+      when /\A-action/
+        @q << [:ACHECK, $&]
       when /\A@/
         @q << [:OP, $&]
       when /\A(0|[1-9]\d*)\.\d+/
@@ -230,11 +240,12 @@ if ARGV[0] then
   end
 
   
-  exp = Expression.new(parser.operators, parser.opclasses)
+  exp = Expression.new(parser.operators, parser.opclasses, parser.acheck)
 
   lex = exp.make_lex()
   yacc = exp.make_yacc_definition()
   yacc += exp.make_yacc_rule()
+  yacc += exp.make_yacc_footer()
 
   f1.puts(lex)
   f2.puts(yacc)
