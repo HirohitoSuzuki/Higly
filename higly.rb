@@ -8,27 +8,26 @@ require 'racc/parser.rb'
 
 require './higly_expression'
 
-class OpClassRegistry
-  def initialize(name, assoc, operators)
+class OpClass
+  def initialize(name, assoc, op_list)
     @name = name
     @assoc = assoc
-    @operators = operators
+    @op_list = op_list
     @prename = nil
-    @child = nil
+    @parent = nil
   end
 
-  attr_reader :assoc, :operators
-  attr_accessor :name, :prename, :child
+  attr_reader :assoc
+  attr_accessor :name, :prename, :op_list, :parent
 end
 
-class OpRegistry
-  def initialize(kind, operators, operand)
+class Op
+  def initialize(kind, operators)
     @kind = kind
     @operators = operators
-    @operand = operand
   end
 
-  attr_reader :kind, :operators, :operand
+  attr_reader :kind, :operators
 end
 
 class OpCode
@@ -45,30 +44,42 @@ end
 
 class HiglyParser < Racc::Parser
 
-module_eval(<<'...end higly_racc.y/module_eval...', 'higly_racc.y', 146)
-attr_reader :opclasses, :operators, :acheck
+module_eval(<<'...end higly_racc.y/module_eval...', 'higly_racc.y', 148)
+attr_reader :opclasses, :operators, :tree_flag, :nonterms
 
 def parse(f)
   @q = []
   @lineno = 1
   @termno = 1
+  @opclasses = Hash.new
   @operators = Hash.new
+  @nonterms = Hash.new
   @default_assoc = 0
 
   f.each do |line|
     line.strip!
     until line.empty?
       case line
-      when /\A%expression/
+      when /\A<expression>/
         @q << [:EXP, $&]
       when /\Aleft/
         @q << [:LEFT, $&]
+      when /\Atree/
+        @q << [:TREE, $&]
+      when /\A%action/
+        @q << [:ACTION, $&]
+      when /\A%assoc/
+        @q << [:ASSOC, $&]
+      when /\A%nonterm/
+        @q << [:NONTERM, $&]
       when /\Aright/
         @q << [:RIGHT, $&]
       when /\Anonassoc/
         @q << [:NONASSOC, $&]
       when /\A-action/
         @q << [:ACHECK, $&]
+      when /\A%\+/
+        @q << [:PPLUS, $&]
       when /\A@/
         @q << [:OP, $&]
       when /\A(0|[1-9]\d*)\.\d+/
@@ -83,10 +94,14 @@ def parse(f)
         @q << [')', $&]
       when /\A\./
         @q << ['.', $&]
+      when /\A,/
+        @q << [',', $&]
       when /\A;/
         @q << [';', $&]
       when /\A:/
         @q << [':', $&]
+      when /\A=/
+        @q << ['=', $&]
       when /\A\|/
         @q << ['|', $&]
       when /\A[a-zA-Z_]\w*/
@@ -116,13 +131,21 @@ def on_error(t, v, values)
 end
 
 def token_register(t)
-  if t =~ /\A\w+/ then
-    @operators[t] = t.upcase
-  elsif t.size == 1 then
-    @operators[t] = "\'#{t}\'"
+  if @nonterms.key?(t)
+    return t
+  elsif @operators.key?(t)
+    return @operators[t]
   else
-    @operators[t] = "OP#{@termno}"
-    @termno += 1
+    if t =~ /\A\w+/ then
+      token = t.upcase
+    elsif t.size == 1 then
+      token = "\'#{t}\'"
+    else
+      token = "OP#{@termno}"
+      @operators.key?(t) ? nil : @termno += 1
+    end
+    @operators[t] = token
+    return token
   end
 end
 
@@ -130,102 +153,120 @@ end
 ##### State transition tables begin ###
 
 racc_action_table = [
-     6,    24,    15,    28,    29,    30,    23,     8,    13,    14,
-    27,    33,    24,    24,    24,    24,    32,    23,    23,    23,
-    23,    24,    17,    18,    19,     3,    23,    17,    18,    19,
-    17,    18,    19,    43,    30,    52,    30,    54,    30,     4,
-     9,    10,     8,     8,     8,    20,    26,    31,    34,    38,
-    39,    41,    42,    44,    41,    46,    47,    50,    51 ]
+    38,    38,    38,    38,    38,    37,    37,    37,    37,    37,
+     8,     2,     8,     9,    10,     9,    10,     8,     3,     8,
+     9,    10,     9,    10,    22,    23,    43,    24,    55,    44,
+    61,    44,    63,    44,    11,    44,    28,    29,    30,    28,
+    29,    30,    41,    14,    42,    28,    29,    30,    18,    19,
+    20,    14,    26,    32,    33,    40,    45,    38,    38,    48,
+    32,    53,    54,    56,    38,    59,    60 ]
 
 racc_action_check = [
-     2,    14,     8,    20,    21,    21,    14,     2,     8,     8,
-    20,    24,    27,    30,    41,    42,    24,    27,    30,    41,
-    42,    50,     9,     9,     9,     0,    50,    15,    15,    15,
-    28,    28,    28,    35,    35,    49,    49,    53,    53,     1,
-     3,     4,     5,     6,    12,    13,    16,    23,    25,    31,
-    32,    33,    34,    36,    38,    39,    40,    44,    46 ]
+    23,    41,    44,    54,    59,    23,    41,    44,    54,    59,
+     2,     0,     5,     2,     2,     5,     5,     6,     1,     7,
+     6,     6,     7,     7,    14,    14,    34,    14,    50,    34,
+    58,    50,    62,    58,     3,    62,    19,    19,    19,    24,
+    24,    24,    33,     4,    33,    42,    42,    42,     8,     9,
+    10,    13,    18,    20,    22,    32,    36,    37,    38,    39,
+    40,    46,    48,    51,    53,    56,    57 ]
 
 racc_action_pointer = [
-    22,    39,    -2,    36,    41,    33,    34,   nil,    -2,    16,
-   nil,   nil,    35,    36,    -8,    21,    41,   nil,   nil,   nil,
-    -1,    -8,   nil,    38,     2,    43,   nil,     3,    24,   nil,
-     4,    40,    41,    42,    41,    21,    48,   nil,    45,    41,
-    42,     5,     6,   nil,    46,   nil,    49,   nil,   nil,    23,
-    12,   nil,   nil,    25,   nil ]
+     9,    18,     7,    34,    30,     9,    14,    16,    44,    45,
+    46,   nil,   nil,    38,    10,   nil,   nil,   nil,    47,    26,
+    45,   nil,    41,    -8,    29,   nil,   nil,   nil,   nil,   nil,
+   nil,   nil,    46,    27,    10,   nil,    43,    49,    50,    41,
+    52,    -7,    35,   nil,    -6,   nil,    48,   nil,    47,   nil,
+    12,    45,   nil,    56,    -5,   nil,    50,    53,    14,    -4,
+   nil,   nil,    16,   nil ]
 
 racc_action_default = [
-   -23,   -23,   -23,   -23,   -23,    -1,   -23,    -8,   -23,   -23,
-    55,    -7,    -2,   -23,   -23,   -23,   -23,    -4,    -5,    -6,
-   -23,   -23,   -13,   -23,   -23,   -23,    -3,   -23,   -23,   -11,
-   -23,   -15,   -17,   -21,   -23,   -23,   -23,   -14,   -21,   -19,
-   -23,   -23,   -23,    -9,   -23,   -16,   -23,   -18,   -22,   -23,
-   -23,   -20,   -12,   -23,   -10 ]
+   -30,   -30,    -2,   -30,   -30,    -2,    -2,    -2,   -30,   -30,
+   -30,    64,    -1,   -16,   -30,    -3,    -4,    -5,   -30,   -30,
+   -30,   -15,   -30,   -30,   -30,    -6,    -7,    -8,   -12,   -13,
+   -14,    -9,   -11,   -30,   -30,   -21,   -23,   -30,   -28,   -30,
+   -30,   -30,   -30,   -19,   -30,   -24,   -25,   -29,   -30,   -10,
+   -30,   -30,   -22,   -26,   -30,   -17,   -30,   -30,   -30,   -30,
+   -27,   -20,   -30,   -18 ]
 
 racc_goto_table = [
-    21,    16,    11,    37,     5,    40,     1,    25,    12,    11,
-    45,     2,   nil,    35,    48,   nil,   nil,   nil,   nil,   nil,
-    36,   nil,   nil,   nil,   nil,   nil,   nil,   nil,    49,   nil,
-   nil,   nil,   nil,   nil,   nil,   nil,    53 ]
+    34,    27,    31,    46,    47,    12,    39,     4,     1,    25,
+    15,    16,    17,    52,    21,   nil,   nil,   nil,    50,    57,
+   nil,   nil,    49,   nil,    51,   nil,   nil,   nil,   nil,   nil,
+   nil,    58,   nil,   nil,   nil,   nil,    62 ]
 
 racc_goto_check = [
-     6,     4,     5,     7,     3,     8,     1,     4,     3,     5,
-     8,     2,   nil,     6,     7,   nil,   nil,   nil,   nil,   nil,
-     4,   nil,   nil,   nil,   nil,   nil,   nil,   nil,     6,   nil,
-   nil,   nil,   nil,   nil,   nil,   nil,     6 ]
+    11,     8,     9,    13,    13,     3,     8,     2,     1,     7,
+     2,     2,     2,    12,     3,   nil,   nil,   nil,    11,    13,
+   nil,   nil,     9,   nil,     8,   nil,   nil,   nil,   nil,   nil,
+   nil,    11,   nil,   nil,   nil,   nil,    11 ]
 
 racc_goto_pointer = [
-   nil,     6,    11,     2,    -8,    -3,   -14,   -27,   -28 ]
+   nil,     8,     5,     1,   nil,   nil,   nil,    -9,   -18,   -18,
+   nil,   -23,   -31,   -34 ]
 
 racc_goto_default = [
-   nil,   nil,   nil,   nil,   nil,     7,   nil,    22,   nil ]
+   nil,   nil,   nil,   nil,     5,     6,     7,   nil,   nil,   nil,
+    13,   nil,    35,    36 ]
 
 racc_reduce_table = [
   0, 0, :racc_error,
-  2, 16, :_reduce_1,
-  3, 16, :_reduce_2,
-  4, 17, :_reduce_3,
-  1, 19, :_reduce_4,
-  1, 19, :_reduce_5,
-  1, 19, :_reduce_6,
-  2, 18, :_reduce_7,
-  1, 18, :_reduce_8,
-  6, 20, :_reduce_9,
-  9, 20, :_reduce_10,
-  4, 20, :_reduce_11,
-  7, 20, :_reduce_12,
-  1, 21, :_reduce_13,
-  3, 21, :_reduce_14,
-  2, 22, :_reduce_15,
-  4, 22, :_reduce_16,
-  2, 22, :_reduce_17,
-  4, 22, :_reduce_18,
-  3, 22, :_reduce_19,
-  5, 22, :_reduce_20,
-  0, 23, :_reduce_21,
-  2, 23, :_reduce_22 ]
+  3, 21, :_reduce_1,
+  0, 22, :_reduce_none,
+  2, 22, :_reduce_none,
+  2, 22, :_reduce_none,
+  2, 22, :_reduce_none,
+  3, 25, :_reduce_6,
+  1, 27, :_reduce_7,
+  3, 24, :_reduce_8,
+  3, 26, :_reduce_9,
+  3, 29, :_reduce_10,
+  1, 29, :_reduce_11,
+  1, 28, :_reduce_12,
+  1, 28, :_reduce_13,
+  1, 28, :_reduce_14,
+  2, 23, :_reduce_15,
+  1, 23, :_reduce_16,
+  6, 30, :_reduce_17,
+  9, 30, :_reduce_18,
+  4, 30, :_reduce_19,
+  7, 30, :_reduce_20,
+  1, 31, :_reduce_21,
+  3, 31, :_reduce_22,
+  1, 32, :_reduce_23,
+  2, 32, :_reduce_24,
+  2, 32, :_reduce_25,
+  3, 32, :_reduce_26,
+  5, 32, :_reduce_27,
+  1, 33, :_reduce_28,
+  2, 33, :_reduce_29 ]
 
-racc_reduce_n = 23
+racc_reduce_n = 30
 
-racc_shift_n = 55
+racc_shift_n = 64
 
 racc_token_table = {
   false => 0,
   :error => 1,
-  :ACHECK => 2,
-  :EXP => 3,
-  "(" => 4,
-  ")" => 5,
-  :NONASSOC => 6,
-  :LEFT => 7,
-  :RIGHT => 8,
-  :IDENTIFIER => 9,
-  "." => 10,
-  ":" => 11,
-  ";" => 12,
-  "|" => 13,
-  :S_LITERAL => 14 }
+  :EXP => 2,
+  :ACTION => 3,
+  "=" => 4,
+  :TREE => 5,
+  :ASSOC => 6,
+  :NONTERM => 7,
+  :S_LITERAL => 8,
+  "," => 9,
+  :NONASSOC => 10,
+  :LEFT => 11,
+  :RIGHT => 12,
+  :IDENTIFIER => 13,
+  "." => 14,
+  ":" => 15,
+  ";" => 16,
+  "(" => 17,
+  ")" => 18,
+  "|" => 19 }
 
-racc_nt_base = 15
+racc_nt_base = 20
 
 racc_use_result_var = true
 
@@ -248,10 +289,14 @@ Racc_arg = [
 Racc_token_to_s_table = [
   "$end",
   "error",
-  "ACHECK",
   "EXP",
-  "\"(\"",
-  "\")\"",
+  "ACTION",
+  "\"=\"",
+  "TREE",
+  "ASSOC",
+  "NONTERM",
+  "S_LITERAL",
+  "\",\"",
   "NONASSOC",
   "LEFT",
   "RIGHT",
@@ -259,17 +304,23 @@ Racc_token_to_s_table = [
   "\".\"",
   "\":\"",
   "\";\"",
+  "\"(\"",
+  "\")\"",
   "\"|\"",
-  "S_LITERAL",
   "$start",
   "expression",
-  "exp_head",
+  "options",
   "expstmts",
+  "dassoc",
+  "action",
+  "nonterm",
+  "action_names",
   "assoc",
+  "nonterms",
   "expstmt",
-  "expfig",
-  "operators",
-  "operands" ]
+  "op_list",
+  "op_def",
+  "operator" ]
 
 Racc_debug_parser = false
 
@@ -277,188 +328,226 @@ Racc_debug_parser = false
 
 # reduce 0 omitted
 
-module_eval(<<'.,.,', 'higly_racc.y', 5)
+module_eval(<<'.,.,', 'higly_racc.y', 6)
   def _reduce_1(val, _values, result)
-          val[1].last.prename = "primaryExpression"
-      @opclasses = val[1]
-      @acheck = false
-    
+        tmp = []
+    prename = "primaryExpression"
+    @opclasses.each do |_,v|
+      tmp.append(v)
+    end
+    tmp.reverse!.each do |v|
+      if v.prename == nil
+        v.prename = prename
+        v.op_list << Op.new(:nonterm, [prename])
+        @opclasses[v.name] = v
+        prename = v.name
+      end
+    end
+    tmp = @opclasses
+    @opclasses = []
+    tmp.each do |_, v|
+      @opclasses << v
+    end
+    tmp = @operators.invert
+    @operators = tmp
+  
     result
   end
 .,.,
 
-module_eval(<<'.,.,', 'higly_racc.y', 11)
-  def _reduce_2(val, _values, result)
-          val[2].last.prename = "primaryExpression"
-      @opclasses = val[2]
-      @acheck = true
-    
+# reduce 2 omitted
+
+# reduce 3 omitted
+
+# reduce 4 omitted
+
+# reduce 5 omitted
+
+module_eval(<<'.,.,', 'higly_racc.y', 35)
+  def _reduce_6(val, _values, result)
+     val[2] == :tree ? @tree_flag = true : nil 
     result
   end
 .,.,
 
-module_eval(<<'.,.,', 'higly_racc.y', 17)
-  def _reduce_3(val, _values, result)
+module_eval(<<'.,.,', 'higly_racc.y', 38)
+  def _reduce_7(val, _values, result)
+     result = :tree 
+    result
+  end
+.,.,
+
+module_eval(<<'.,.,', 'higly_racc.y', 41)
+  def _reduce_8(val, _values, result)
      @default_assoc = val[2] 
     result
   end
 .,.,
 
-module_eval(<<'.,.,', 'higly_racc.y', 20)
-  def _reduce_4(val, _values, result)
-     result = :nonassoc 
-    result
-  end
-.,.,
-
-module_eval(<<'.,.,', 'higly_racc.y', 21)
-  def _reduce_5(val, _values, result)
-     result = :left 
-    result
-  end
-.,.,
-
-module_eval(<<'.,.,', 'higly_racc.y', 22)
-  def _reduce_6(val, _values, result)
-     result = :right 
-    result
-  end
-.,.,
-
-module_eval(<<'.,.,', 'higly_racc.y', 27)
-  def _reduce_7(val, _values, result)
-          val[0].last.prename = val[1].name
-      result = val[0].push(val[1])
-    
-    result
-  end
-.,.,
-
-module_eval(<<'.,.,', 'higly_racc.y', 32)
-  def _reduce_8(val, _values, result)
-          result = Array.new
-      result.push(val[0])
-    
-    result
-  end
-.,.,
-
-module_eval(<<'.,.,', 'higly_racc.y', 39)
+module_eval(<<'.,.,', 'higly_racc.y', 46)
   def _reduce_9(val, _values, result)
-          result = OpClassRegistry.new(val[0], 0, nil)
-      result.child = OpClassRegistry.new(val[2], @default_assoc, val[4])
-    
+        val[2].each do |v|
+      @nonterms[v] = 1
+    end
+  
     result
   end
 .,.,
 
-module_eval(<<'.,.,', 'higly_racc.y', 44)
+module_eval(<<'.,.,', 'higly_racc.y', 52)
   def _reduce_10(val, _values, result)
-          result = OpClassRegistry.new(val[0], 0, nil)
-      result.child = OpClassRegistry.new(val[2], val[4], val[7])
-    
-    result
-  end
-.,.,
-
-module_eval(<<'.,.,', 'higly_racc.y', 49)
-  def _reduce_11(val, _values, result)
-          result = OpClassRegistry.new(val[0], @default_assoc, val[2])
-    
+     result = val[2] << val[0] 
     result
   end
 .,.,
 
 module_eval(<<'.,.,', 'higly_racc.y', 53)
+  def _reduce_11(val, _values, result)
+     result = [val[0]] 
+    result
+  end
+.,.,
+
+module_eval(<<'.,.,', 'higly_racc.y', 56)
   def _reduce_12(val, _values, result)
-          result = OpClassRegistry.new(val[0], val[2], val[5])
-    
+     result = :nonassoc
     result
   end
 .,.,
 
-module_eval(<<'.,.,', 'higly_racc.y', 59)
+module_eval(<<'.,.,', 'higly_racc.y', 57)
   def _reduce_13(val, _values, result)
-          result = Array.new
-      result.push(val[0])
-    
+     result = :left 
     result
   end
 .,.,
 
-module_eval(<<'.,.,', 'higly_racc.y', 64)
+module_eval(<<'.,.,', 'higly_racc.y', 58)
   def _reduce_14(val, _values, result)
-          result = val[0].push(val[2])
-    
+     result = :right 
     result
   end
 .,.,
 
-module_eval(<<'.,.,', 'higly_racc.y', 70)
+module_eval(<<'.,.,', 'higly_racc.y', 61)
   def _reduce_15(val, _values, result)
-          token_register(val[0])
-      result = OpRegistry.new(:left, [val[0]], 1)
-    
+     result = val[0] + val[1] 
     result
   end
 .,.,
 
-module_eval(<<'.,.,', 'higly_racc.y', 75)
+module_eval(<<'.,.,', 'higly_racc.y', 62)
   def _reduce_16(val, _values, result)
-          token_register(val[0])
-      result = OpRegistry.new(:left, [val[0]], 2+val[3])
-    
+     result = val[0] 
     result
   end
 .,.,
 
-module_eval(<<'.,.,', 'higly_racc.y', 80)
+module_eval(<<'.,.,', 'higly_racc.y', 67)
   def _reduce_17(val, _values, result)
-          token_register(val[1])
-      result = OpRegistry.new(:right, [val[1]], 1)
-    
+        if @opclasses.key?(val[0])
+      @opclasses[val[0]].op_list << Op.new(:nonterm, [val[2]])
+    else
+      @opclasses[val[0]] = OpClass.new(val[0], @default_assoc, [Op.new(:nonterm, [val[2]])])
+    end
+    child = OpClass.new(val[2], @default_assoc, val[4])
+    child.prename = val[0]
+    child.parent = val[0]
+    @opclasses[val[2]] = child
+  
     result
   end
 .,.,
 
-module_eval(<<'.,.,', 'higly_racc.y', 85)
+module_eval(<<'.,.,', 'higly_racc.y', 79)
   def _reduce_18(val, _values, result)
-          token_register(val[3])
-      result = OpRegistry.new(:right, [val[3]], 2+val[2])
-    
+        if @opclasses.key?(val[0])
+      @opclasses[val[0]].op_list << Op.new(:nonterm, [val[2]])
+    else
+      @opclasses[val[0]] = OpClass.new(val[0], val[4], [Op.new(:nonterm, [val[2]])])
+    end
+    child = OpClass.new(val[2], val[4], val[7])
+    child.prename = val[0]
+    child.parent = val[0]
+    @opclasses[val[2]] = child
+  
     result
   end
 .,.,
 
 module_eval(<<'.,.,', 'higly_racc.y', 90)
   def _reduce_19(val, _values, result)
-          token_register(val[1])
-      result = OpRegistry.new(:binary, [val[1]], 1)
-    
+     @opclasses[val[0]] = OpClass.new(val[0], @default_assoc, val[2]) 
+    result
+  end
+.,.,
+
+module_eval(<<'.,.,', 'higly_racc.y', 92)
+  def _reduce_20(val, _values, result)
+     @opclasses[val[0]] = OpClass.new(val[0], val[2], val[5]) 
     result
   end
 .,.,
 
 module_eval(<<'.,.,', 'higly_racc.y', 95)
-  def _reduce_20(val, _values, result)
-          token_register(val[1])
-      token_register(val[3])
-      result = OpRegistry.new(:ternary, [val[1],val[3]], 1)
-    
+  def _reduce_21(val, _values, result)
+     result = [val[0]] 
+    result
+  end
+.,.,
+
+module_eval(<<'.,.,', 'higly_racc.y', 96)
+  def _reduce_22(val, _values, result)
+     result = val[0]<<val[2] 
+    result
+  end
+.,.,
+
+module_eval(<<'.,.,', 'higly_racc.y', 99)
+  def _reduce_23(val, _values, result)
+     result = Op.new(:nonterm, [val[0]]) 
+    result
+  end
+.,.,
+
+module_eval(<<'.,.,', 'higly_racc.y', 100)
+  def _reduce_24(val, _values, result)
+     result = Op.new(:lunary, [val[0]])
     result
   end
 .,.,
 
 module_eval(<<'.,.,', 'higly_racc.y', 101)
-  def _reduce_21(val, _values, result)
-    result = 0
+  def _reduce_25(val, _values, result)
+     result = Op.new(:runary, [val[1]])
     result
   end
 .,.,
 
 module_eval(<<'.,.,', 'higly_racc.y', 102)
-  def _reduce_22(val, _values, result)
-    result = 1 + val[1]
+  def _reduce_26(val, _values, result)
+     result = Op.new(:binary, [val[1]])
+    result
+  end
+.,.,
+
+module_eval(<<'.,.,', 'higly_racc.y', 103)
+  def _reduce_27(val, _values, result)
+     result = Op.new(:ternary, [val[1],val[3]])
+    result
+  end
+.,.,
+
+module_eval(<<'.,.,', 'higly_racc.y', 106)
+  def _reduce_28(val, _values, result)
+     result = token_register(val[0]) 
+    result
+  end
+.,.,
+
+module_eval(<<'.,.,', 'higly_racc.y', 107)
+  def _reduce_29(val, _values, result)
+     result = token_register(val[0]) + " " + val[1] 
     result
   end
 .,.,
@@ -485,7 +574,7 @@ if ARGV[0] then
   end
 
   
-  exp = Expression.new(parser.operators, parser.opclasses, parser.acheck)
+  exp = Expression.new(parser.operators, parser.opclasses, parser.tree_flag)
 
   lex = exp.make_lex()
   yacc = exp.make_yacc_definition()

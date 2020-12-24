@@ -1,15 +1,19 @@
 graph type{
 dpi="200";
 node [fontname="DejaVu Serif Italic"];
-symbol2;
-symbol6;
-symbol1 -- symbol2, symbol6;
-symbol1[label = "+"];
-symbol2[label = "INT_LITERAL"];
-symbol6[label = "INT_LITERAL"];
-symbol11;
+symbol3;
+symbol2 -- symbol3;
+symbol2[label = "AWAIT"];
+symbol3[label = "IDENTIFIER"];
+symbol1 -- symbol2;
+symbol1[label = "OP17"];
+symbol2[label = "AWAIT"];
+symbol12;
+symbol11 -- symbol12;
+symbol11[label = "TYPE_NAME"];
+symbol12[label = "IDENTIFIER"];
 symbol0 -- symbol1, symbol11;
-symbol0[label = "+"];
-symbol1[label = "+"];
-symbol11[label = "INT_LITERAL"];
+symbol0[label = "'+'"];
+symbol1[label = "OP17"];
+symbol11[label = "TYPE_NAME"];
 }

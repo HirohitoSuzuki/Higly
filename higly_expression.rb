@@ -8,12 +8,12 @@ class Expression
   def make_lex
     code = "D			[0-9]\nL			[a-zA-Z_]\n"
     code += "%%\n"
-    t = @operators.sort_by do |_, v|
-      v =~ /\d+/
+    t = @operators.sort_by do |k, _|
+      k =~ /\d+/
       $&.to_i
     end.to_h
     t.each do |key, value|
-      code += "\"#{key}\"  { return(#{value}); }\n"
+      code += "\"#{value}\"  { return(#{key}); }\n"
     end
 
     code += "{L}({L}|{D})*  { return (IDENTIFIER);}\n"
@@ -26,83 +26,18 @@ class Expression
   end
 
   def make_yacc_definition
-    code = ''
-    ops = {}
-    nonassoc = []
-    left = []
-    right = []
+    code = '%token'
+    i = 0
 
-    @opclasses.each do |item|
-      opclass = if item.child.nil?
-                  item
-                else
-                  item.child
-                end
-      case opclass.assoc
-      when :nonassoc
-        opclass.operators.each do |operator|
-          operator.operators.each do |i|
-            ops[i] = :nonassoc
-          end
-        end
-      when :left
-        opclass.operators.each do |operator|
-          operator.operators.each do |i|
-            ops[i] = :left
-          end
-        end
-      when :right
-        opclass.operators.each do |operator|
-          operator.operators.each do |i|
-            ops[i] = :right
-          end
-        end
+    @operators.each do |k, _|
+      if i >= 5
+        code += "\n%token"
+        i = 0
       end
+      code += " #{k}"
+      i += 1
     end
-
-    ops.each do |op, assoc|
-      case assoc
-      when :nonassoc
-        nonassoc.push(@operators[op])
-      when :left
-        left.push(@operators[op])
-      when :right
-        right.push(@operators[op])
-      end
-    end
-
-    if nonassoc.size != 0
-      code += '%nonassoc'
-      nonassoc.each_with_index do |op, i|
-        code += " #{op}"
-        if (i+1) % 5 == 0
-          code += "\n%nonassoc"
-        end
-      end
-      code += "\n"
-    end
-
-    if left.size != 0
-      code += '%left'
-      left.each_with_index do |op, i|
-        code += " #{op}"
-        if (i+1) % 5 == 0
-          code += "\n%left"
-        end
-      end
-      code += "\n"
-    end
-
-    if right.size != 0
-      code += '%right'
-      right.each_with_index do |op, i|
-        code += " #{op}"
-        if (i+1) % 5 == 0
-          code += "\n%right"
-        end
-      end
-      code += "\n"
-    end
+    code += "\n"
 
     code += "%token IDENTIFIER INT_LITERAL FLOAT_LITERAL STRING_LITERAL\n"
 
@@ -119,7 +54,6 @@ class Expression
       code += "  struct node* child[CNUM];\n"
       code += "} Node;\n\n"
       code += "char* dcode;\n"
-      code += "int dcode_size;\n"
       code += "Node* tree;\n"
       code += "\n"
       code += "Node* makeNode(char* na, Node* c1, Node* c2, Node* c3){\n"
@@ -133,16 +67,16 @@ class Expression
       code += "  return n;\n"
       code += "}\n"
       code += "\n"
-      code += "int dcode_append(char* s){\n"
-      code += "  dcode_size += strlen(s);\n"
+      code += "int code_append(char** s1, char* s2){\n"
+      code += "  int size = strlen(*s1) + strlen(s2);\n"
       code += "  char* tmp;\n"
-      code += "  tmp = (char*)realloc(dcode, sizeof(char) * (dcode_size+1));\n"
+      code += "  tmp = (char*)realloc(*s1, sizeof(char) * (size+1));\n"
       code += "  if (tmp == NULL){\n"
-      code += "	  free(dcode);\n"
+      code += "	  free(*s1);\n"
       code += "    return -1;\n"
       code += "  }\n"
-      code += "  dcode = tmp;\n"
-      code += "  strcat(dcode, s);\n"
+      code += "  *s1 = tmp;\n"
+      code += "  strcat(*s1, s2);\n"
       code += "  return 0;\n"
       code += "}\n"
       code += "\n"
@@ -178,32 +112,32 @@ class Expression
       code += "    snprintf(ctmp[i], 15, \"symbol%d\", child_symbol_num[i]);\n"
       code += "  }\n"
       code += "\n"
-      code += "  dcode_append(tmp);\n"
+      code += "  code_append(&dcode, tmp);\n"
       code += "  if(child_num != 0){\n"
-      code += "    dcode_append(\" -- \");\n"
-      code += "    dcode_append(ctmp[0]);\n"
+      code += "    code_append(&dcode, \" -- \");\n"
+      code += "    code_append(&dcode, ctmp[0]);\n"
       code += "    if(child_num >= 2){\n"
       code += "      for(i=1;i<child_num;i++){\n"
-      code += "        dcode_append(\", \");\n"
-      code += "        dcode_append(ctmp[i]);\n"
+      code += "        code_append(&dcode, \", \");\n"
+      code += "        code_append(&dcode, ctmp[i]);\n"
       code += "      }\n"
       code += "    }\n"
       code += "  }\n"
-      code += "  dcode_append(\";\\n\");\n"
+      code += "  code_append(&dcode, \";\\n\");\n"
       code += "  //\"symbol1 -- symbol2, symbol3;\"\n"
       code += "\n"
       code += "  if(child_num != 0){\n"
-      code += "    dcode_append(tmp);\n"
-      code += "    dcode_append(\"[label = \\\"\");\n"
-      code += "    dcode_append(t->name);\n"
-      code += "    dcode_append(\"\\\"];\\n\");\n"
+      code += "    code_append(&dcode, tmp);\n"
+      code += "    code_append(&dcode, \"[label = \\\"\");\n"
+      code += "    code_append(&dcode, t->name);\n"
+      code += "    code_append(&dcode, \"\\\"];\\n\");\n"
       code += "    //\"symbol1 = [label = \"+\"];\"\n"
       code += "\n"
       code += "    for(i=0;i<child_num;i++){\n"
-      code += "      dcode_append(ctmp[i]);\n"
-      code += "      dcode_append(\"[label = \\\"\");\n"
-      code += "      dcode_append(child_name[i]);\n"
-      code += "      dcode_append(\"\\\"];\\n\");\n"
+      code += "      code_append(&dcode, ctmp[i]);\n"
+      code += "      code_append(&dcode, \"[label = \\\"\");\n"
+      code += "      code_append(&dcode, child_name[i]);\n"
+      code += "      code_append(&dcode, \"\\\"];\\n\");\n"
       code += "      //\"symbol2 = [label = \"identifier\"];\"\n"
       code += "    }\n"
       code += "  }\n"
@@ -250,120 +184,88 @@ class Expression
   end
 
   def make_yacc_rule
-    code = "expression\n  : #{@opclasses.first.name}  { tree = $1; }\n;\n\n"
-    codes = {}
+    code = "expression\n  : #{@opclasses.first.name}"
+    code += "{ tree = $1; }" if @acheck
+    code += "\n  ;\n\n"
 
-    @opclasses.each do |n|
-      if n.child.nil?
-        codes[n.name] = OpCode.new(n.name, n.prename, :parent)
+    @opclasses.each do |opclass|
+      code += "#{opclass.name}\n"
+      if opclass.parent == nil
+        name = opclass.name
       else
-        codes[n.name] = OpCode.new(n.name, n.prename, :parent)
-        codes[n.child.name] = OpCode.new(n.name, n.prename, :child)
-      end
-    end
-
-    @opclasses.each do |n|
-      if n.child.nil?
-        nonterm = n
-      else
-        codes[n.name].code += "  | #{n.child.name}"
-        codes[n.name].code += make_action([n.child.name])
-        codes[n.name].code += "\n"
-        nonterm = n.child
+        name = opclass.parent
       end
 
       # 演算子の記述
-      nonterm.operators.each do |term|
-        codes[nonterm.name].code += '  |'
+      opclass.op_list.each_with_index do |op, i|
+        i == 0 ? code += "  :" : code += '  |'
 
-        case term.kind
-        when :left
-          i = term.operand
-          codes[nonterm.name].code += " #{@operators[term.operators[0]]}"
-          if nonterm.assoc == :nonassoc
-            while i > 0
-              codes[nonterm.name].code += " #{codes[nonterm.name].prename}"
-              i -= 1
-            end
-          else
-            while i > 0
-              codes[nonterm.name].code += " #{codes[nonterm.name].name}"
-              i -= 1
-            end
-          end
-          codes[nonterm.name].code += make_action([term.operators[0], term.operand])
-          codes[nonterm.name].code += "\n"
+        case op.kind
+        when :nonterm
+          code += " #{op.operators[0]}"
 
-        when :right
-          i = term.operand
-          if nonterm.assoc == :nonassoc
-            while i > 0
-              codes[nonterm.name].code += " #{codes[nonterm.name].prename}"
-              i -= 1
-            end
+        when :lunary
+          code += " #{op.operators[0]}"
+          case opclass.assoc
+          when :nonassoc
+            code += " #{opclass.prename}"
           else
-            while i > 0
-              codes[nonterm.name].code += " #{codes[nonterm.name].name}"
-              i -= 1
-            end
+            code += " #{name}"
           end
-          codes[nonterm.name].code += " #{@operators[term.operators[0]]}"
-          codes[nonterm.name].code += make_action([term.operand, term.operators[0]])
-          codes[nonterm.name].code += "\n"
+          code += make_action([op.operators[0], 1])
+
+        when :runary
+          case opclass.assoc
+          when :nonassoc
+            code += " #{opclass.prename}"
+          else
+            code += " #{name}"
+          end
+          code += " #{op.operators[0]}"
+          code += make_action([1, op.operators[0]])
 
         when :binary
-          case nonterm.assoc
+          case opclass.assoc
           when :nonassoc
-            codes[nonterm.name].code += " #{codes[nonterm.name].prename}"
-            codes[nonterm.name].code += " #{@operators[term.operators[0]]}"
+            code += " #{opclass.prename}"
+            code += " #{op.operators[0]}"
 
-            codes[nonterm.name].code += " #{codes[nonterm.name].prename}"
+            code += " #{opclass.prename}"
           when :left
-            codes[nonterm.name].code += " #{codes[nonterm.name].name}"
-            codes[nonterm.name].code += " #{@operators[term.operators[0]]}"
-            codes[nonterm.name].code += " #{codes[nonterm.name].prename}"
+            code += " #{name}"
+            code += " #{op.operators[0]}"
+            code += " #{opclass.prename}"
           when :right
-            codes[nonterm.name].code += " #{codes[nonterm.name].prename}"
-            codes[nonterm.name].code += " #{@operators[term.operators[0]]}"
-            codes[nonterm.name].code += " #{codes[nonterm.name].name}"
+            code += " #{opclass.prename}"
+            code += " #{op.operators[0]}"
+            code += " #{name}"
           end
-          codes[nonterm.name].code += make_action([1, term.operators[0], 1])
-          codes[nonterm.name].code += "\n"
+          code += make_action([1, op.operators[0], 1])
 
         when :ternary
-          case nonterm.assoc
+          case opclass.assoc
           when :nonassoc
-            codes[nonterm.name].code += " #{codes[nonterm.name].prename}"
-            codes[nonterm.name].code += " #{@operators[term.operators[0]]}"
-            codes[nonterm.name].code += " #{codes[nonterm.name].prename}"
-            codes[nonterm.name].code += " #{@operators[term.operators[1]]}"
-            codes[nonterm.name].code += " #{codes[nonterm.name].prename}"
+            code += " #{opclass.prename}"
+            code += " #{op.operators[0]}"
+            code += " #{opclass.prename}"
+            code += " #{op.operators[1]}"
+            code += " #{opclass.prename}"
           when :left
-            codes[nonterm.name].code += " #{codes[nonterm.name].name}"
-            codes[nonterm.name].code += " #{@operators[term.operators[0]]}"
-            codes[nonterm.name].code += " #{codes[nonterm.name].name}"
-            codes[nonterm.name].code += " #{@operators[term.operators[1]]}"
-            codes[nonterm.name].code += " #{codes[nonterm.name].prename}"
+            code += " #{name}"
+            code += " #{op.operators[0]}"
+            code += " #{name}"
+            code += " #{op.operators[1]}"
+            code += " #{opclass.prename}"
           when :right
-            codes[nonterm.name].code += " #{codes[nonterm.name].prename}"
-            codes[nonterm.name].code += " #{@operators[term.operators[0]]}"
-            codes[nonterm.name].code += " #{codes[nonterm.name].name}"
-            codes[nonterm.name].code += " #{@operators[term.operators[1]]}"
-            codes[nonterm.name].code += " #{codes[nonterm.name].name}"
+            code += " #{opclass.prename}"
+            code += " #{op.operators[0]}"
+            code += " #{name}"
+            code += " #{op.operators[1]}"
+            code += " #{name}"
           end
-          codes[nonterm.name].code += make_action([1, term.operators[0], 1, term.operators[1], 1])
-          codes[nonterm.name].code += "\n"
+          code += make_action([1, op.operators[0], 1, op.operators[1], 1])
         end
-      end
-    end
-
-    codes.each do |name, i|
-      if i.kind == :child
-        code += "#{name}\n  : "
-        code += i.code.delete_prefix('  | ')
-      else
-        code += "#{name}\n  : #{i.prename}\n"
-        code += i.code
+        code += "\n"
       end
       code += "  ;\n\n"
     end
@@ -371,8 +273,11 @@ class Expression
     code += "primaryExpression\n"
     primary_list = ["IDENTIFIER", "INT_LITERAL", "FLOAT_LITERAL", "STRING_LITERAL"]
     primary_list.each_with_index do |x, i|
-      code += "  : #{x}" if i == 0
-      code += "  | #{x}" if i != 0
+      if i == 0
+        code += "  : #{x}"
+      else
+        code += "  | #{x}" if i != 0
+      end
       code += make_action([x]);
       code += "\n"
     end
@@ -389,17 +294,16 @@ class Expression
     code += "  }else{\n"
     code += "    return -1;\n  }\n\n"
     if @acheck
-      code += "  dcode_size = 1;\n"
       code += "  dcode = (char*)calloc(1, sizeof(char));\n"
-      code += "  dcode_append(\"graph type{\\n\");\n"
-      code += "  dcode_append(\"dpi=\\\"200\\\";\\n\");\n"
-      code += "  dcode_append(\"node [fontname=\\\"DejaVu Serif Italic\\\"];\\n\");\n"
+      code += "  code_append(&dcode, \"graph type{\\n\");\n"
+      code += "  code_append(&dcode, \"dpi=\\\"200\\\";\\n\");\n"
+      code += "  code_append(&dcode, \"node [fontname=\\\"DejaVu Serif Italic\\\"];\\n\");\n"
       code += "  if(drawGraph(tree) == 0){\n"
       code += "    printf(\"file output complete.\\n\");\n"
       code += "  }else{\n"
       code += "    printf(\"file output error.\\n\");\n"
       code += "  }\n"
-      code += "  dcode_append(\"}\");\n\n"
+      code += "  code_append(&dcode, \"}\");\n\n"
       code += "  FILE *fp;\n"
       code += "  char *filename = \"tree.dot\";\n"
       code += "  fp = fopen(filename, \"w\");\n"

@@ -1,6 +1,4 @@
-<expression>
-%assoc = left
-%action = tree
+%expression(left)
 
 commaExpression
   : x","x
@@ -11,7 +9,7 @@ assignExpression(right)
   | x">>="x | x"&="x | x"^="x | x"|="x
   ;
 
-conditionExpression
+conditionExpression(right)
   : x"?"x":"x
   ;
 
@@ -39,7 +37,7 @@ equaltiveExpression
   : x"=="x | x"=!"x
   ;
 
-rerativeExpression(%nonassoc)
+rerativeExpression(nonassoc)
   : x"<"x | x">"x | x"<="x | x">="x
   ;
 
@@ -51,18 +49,10 @@ multplecativeExpression
   : x"*"x | x"/"x | x"%"x
   ;
 
-castExpression
-  : "type_name" x
-  ;
-
 unaryExpression
-  : "++"x | "--"x | "sizeof"x | "~"x | "!"x | "+"x | "-"x | "&"x | "*"x
+  : "++"x | "--"x | "~"x | "!"x | "+"x | "-"x
   ;
 
 paClass.postfixExpression
   : x"++" | x"--"
-  ;
-  
-paClass.awaitExpression
-  : "await"x
   ;

@@ -15,6 +15,7 @@ L			[a-zA-Z_]
 "*"  { return('*'); }
 "/"  { return('/'); }
 "%"  { return('%'); }
+"type_name"  { return(TYPE_NAME); }
 "sizeof"  { return(SIZEOF); }
 "~"  { return('~'); }
 "!"  { return('!'); }
@@ -35,10 +36,8 @@ L			[a-zA-Z_]
 "=!"  { return(OP14); }
 "<="  { return(OP15); }
 ">="  { return(OP16); }
-"(type_name)"  { return(OP17); }
-"++"  { return(OP20); }
-"--"  { return(OP21); }
-"+@+"  { return(OP22); }
+"++"  { return(OP17); }
+"--"  { return(OP18); }
 {L}({L}|{D})*  { return (IDENTIFIER);}
 [1-9]{D}*  { return(INT_LITERAL); }
 "0"  { return(INT_LITERAL); }

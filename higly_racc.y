@@ -1,133 +1,135 @@
 class HiglyParser
+
 rule
-  expression
-    : exp_head expstmts
-    {
-      val[1].last.prename = "primaryExpression"
-      @opclasses = val[1]
-      @acheck = false
-    }
-    | exp_head ACHECK expstmts
-    {
-      val[2].last.prename = "primaryExpression"
-      @opclasses = val[2]
-      @acheck = true
-    }
+expression
+  : EXP options expstmts
+  {
+    tmp = []
+    prename = "primaryExpression"
+    @opclasses.each do |_,v|
+      tmp.append(v)
+    end
+    tmp.reverse!.each do |v|
+      if v.prename == nil
+        v.prename = prename
+        v.op_list << Op.new(:nonterm, [prename])
+        @opclasses[v.name] = v
+        prename = v.name
+      end
+    end
+    tmp = @opclasses
+    @opclasses = []
+    tmp.each do |_, v|
+      @opclasses << v
+    end
+    tmp = @operators.invert
+    @operators = tmp
+  }
   
-  exp_head
-    : EXP '(' assoc ')' { @default_assoc = val[2] }
+options
+  :
+  | dassoc options
+  | action options
+  | nonterm options 
+ 
+action
+  : ACTION '=' action_names { val[2] == :tree ? @tree_flag = true : nil }
 
-  assoc
-    : NONASSOC { result = :nonassoc }
-    | LEFT { result = :left }
-    | RIGHT { result = :right }
+action_names
+  : TREE  { result = :tree }
 
-  expstmts
-    : expstmts expstmt
-    {
-      val[0].last.prename = val[1].name
-      result = val[0].push(val[1])
-    }
-    | expstmt
-    {
-      result = Array.new
-      result.push(val[0])
-    }
+dassoc
+  : ASSOC '=' assoc  { @default_assoc = val[2] }
 
-  expstmt
-    : IDENTIFIER '.' IDENTIFIER ':' expfig ';'
-    {
-      result = OpClassRegistry.new(val[0], 0, nil)
-      result.child = OpClassRegistry.new(val[2], @default_assoc, val[4])
-    }
-    | IDENTIFIER '.' IDENTIFIER '(' assoc ')' ':' expfig ';'
-    {
-      result = OpClassRegistry.new(val[0], 0, nil)
-      result.child = OpClassRegistry.new(val[2], val[4], val[7])
-    }
-    | IDENTIFIER ':' expfig ';'
-    {
-      result = OpClassRegistry.new(val[0], @default_assoc, val[2])
-    }
-    | IDENTIFIER '(' assoc ')' ':' expfig ';'
-    {
-      result = OpClassRegistry.new(val[0], val[2], val[5])
-    }
+nonterm
+  : NONTERM '=' nonterms
+  {
+    val[2].each do |v|
+      @nonterms[v] = 1
+    end
+  }
 
-  expfig
-    : operators
-    {
-      result = Array.new
-      result.push(val[0])
-    }
-    | expfig '|' operators
-    {
-      result = val[0].push(val[2])
-    }
+nonterms
+  : S_LITERAL ',' nonterms  { result = val[2] << val[0] }
+  | S_LITERAL { result = [val[0]] }
 
-  operators
-    : S_LITERAL IDENTIFIER
-    {
-      token_register(val[0])
-      result = OpRegistry.new(:left, [val[0]], 1)
-    }
-    | S_LITERAL IDENTIFIER IDENTIFIER operands
-    {
-      token_register(val[0])
-      result = OpRegistry.new(:left, [val[0]], 2+val[3])
-    }
-    | IDENTIFIER S_LITERAL
-    {
-      token_register(val[1])
-      result = OpRegistry.new(:right, [val[1]], 1)
-    }
-    | IDENTIFIER IDENTIFIER operands S_LITERAL
-    {
-      token_register(val[3])
-      result = OpRegistry.new(:right, [val[3]], 2+val[2])
-    }
-    | IDENTIFIER S_LITERAL IDENTIFIER
-    {
-      token_register(val[1])
-      result = OpRegistry.new(:binary, [val[1]], 1)
-    }
-    | IDENTIFIER S_LITERAL IDENTIFIER S_LITERAL IDENTIFIER
-    {
-      token_register(val[1])
-      token_register(val[3])
-      result = OpRegistry.new(:ternary, [val[1],val[3]], 1)
-    }
+assoc
+  : NONASSOC  { result = :nonassoc}
+  | LEFT  { result = :left }
+  | RIGHT  { result = :right }
 
-  operands
-    : {result = 0}
-    | IDENTIFIER operators {result = 1 + val[1]}
+expstmts
+  : expstmt expstmts  { result = val[0] + val[1] }
+  | expstmt  { result = val[0] }
 
-end
+expstmt
+  : IDENTIFIER '.' IDENTIFIER ':' op_list ';'
+  {
+    if @opclasses.key?(val[0])
+      @opclasses[val[0]].op_list << Op.new(:nonterm, [val[2]])
+    else
+      @opclasses[val[0]] = OpClass.new(val[0], @default_assoc, [Op.new(:nonterm, [val[2]])])
+    end
+    child = OpClass.new(val[2], @default_assoc, val[4])
+    child.prename = val[0]
+    child.parent = val[0]
+    @opclasses[val[2]] = child
+  }
+  | IDENTIFIER '.' IDENTIFIER '(' assoc ')' ':' op_list ';'
+  {
+    if @opclasses.key?(val[0])
+      @opclasses[val[0]].op_list << Op.new(:nonterm, [val[2]])
+    else
+      @opclasses[val[0]] = OpClass.new(val[0], val[4], [Op.new(:nonterm, [val[2]])])
+    end
+    child = OpClass.new(val[2], val[4], val[7])
+    child.prename = val[0]
+    child.parent = val[0]
+    @opclasses[val[2]] = child
+  }
+  | IDENTIFIER ':' op_list ';'
+    { @opclasses[val[0]] = OpClass.new(val[0], @default_assoc, val[2]) }
+  | IDENTIFIER '(' assoc ')' ':' op_list ';'
+    { @opclasses[val[0]] = OpClass.new(val[0], val[2], val[5]) }
+
+op_list
+  : op_def  { result = [val[0]] }
+  | op_list '|' op_def  { result = val[0]<<val[2] }
+
+op_def
+  : operator  { result = Op.new(:nonterm, [val[0]]) }
+  | operator IDENTIFIER  { result = Op.new(:lunary, [val[0]])}
+  | IDENTIFIER operator  { result = Op.new(:runary, [val[1]])}
+  | IDENTIFIER operator IDENTIFIER  { result = Op.new(:binary, [val[1]])}
+  | IDENTIFIER operator IDENTIFIER operator IDENTIFIER  { result = Op.new(:ternary, [val[1],val[3]])}
+
+operator
+  : S_LITERAL  { result = token_register(val[0]) }
+  | S_LITERAL operator  { result = token_register(val[0]) + " " + val[1] }
 
 ---- header
 require './higly_expression'
 
-class OpClassRegistry
-  def initialize(name, assoc, operators)
+class OpClass
+  def initialize(name, assoc, op_list)
     @name = name
     @assoc = assoc
-    @operators = operators
+    @op_list = op_list
     @prename = nil
-    @child = nil
+    @parent = nil
   end
 
-  attr_reader :assoc, :operators
-  attr_accessor :name, :prename, :child
+  attr_reader :assoc
+  attr_accessor :name, :prename, :op_list, :parent
 end
 
-class OpRegistry
-  def initialize(kind, operators, operand)
+class Op
+  def initialize(kind, operators)
     @kind = kind
     @operators = operators
-    @operand = operand
   end
 
-  attr_reader :kind, :operators, :operand
+  attr_reader :kind, :operators
 end
 
 class OpCode
@@ -143,29 +145,41 @@ class OpCode
 end
 
 ---- inner
-attr_reader :opclasses, :operators, :acheck
+attr_reader :opclasses, :operators, :tree_flag, :nonterms
 
 def parse(f)
   @q = []
   @lineno = 1
   @termno = 1
+  @opclasses = Hash.new
   @operators = Hash.new
+  @nonterms = Hash.new
   @default_assoc = 0
 
   f.each do |line|
     line.strip!
     until line.empty?
       case line
-      when /\A%expression/
+      when /\A<expression>/
         @q << [:EXP, $&]
       when /\Aleft/
         @q << [:LEFT, $&]
+      when /\Atree/
+        @q << [:TREE, $&]
+      when /\A%action/
+        @q << [:ACTION, $&]
+      when /\A%assoc/
+        @q << [:ASSOC, $&]
+      when /\A%nonterm/
+        @q << [:NONTERM, $&]
       when /\Aright/
         @q << [:RIGHT, $&]
       when /\Anonassoc/
         @q << [:NONASSOC, $&]
       when /\A-action/
         @q << [:ACHECK, $&]
+      when /\A%\+/
+        @q << [:PPLUS, $&]
       when /\A@/
         @q << [:OP, $&]
       when /\A(0|[1-9]\d*)\.\d+/
@@ -180,10 +194,14 @@ def parse(f)
         @q << [')', $&]
       when /\A\./
         @q << ['.', $&]
+      when /\A,/
+        @q << [',', $&]
       when /\A;/
         @q << [';', $&]
       when /\A:/
         @q << [':', $&]
+      when /\A=/
+        @q << ['=', $&]
       when /\A\|/
         @q << ['|', $&]
       when /\A[a-zA-Z_]\w*/
@@ -213,13 +231,21 @@ def on_error(t, v, values)
 end
 
 def token_register(t)
-  if t =~ /\A\w+/ then
-    @operators[t] = t.upcase
-  elsif t.size == 1 then
-    @operators[t] = "\'#{t}\'"
+  if @nonterms.key?(t)
+    return t
+  elsif @operators.key?(t)
+    return @operators[t]
   else
-    @operators[t] = "OP#{@termno}"
-    @termno += 1
+    if t =~ /\A\w+/ then
+      token = t.upcase
+    elsif t.size == 1 then
+      token = "\'#{t}\'"
+    else
+      token = "OP#{@termno}"
+      @operators.key?(t) ? nil : @termno += 1
+    end
+    @operators[t] = token
+    return token
   end
 end
 
@@ -240,7 +266,7 @@ if ARGV[0] then
   end
 
   
-  exp = Expression.new(parser.operators, parser.opclasses, parser.acheck)
+  exp = Expression.new(parser.operators, parser.opclasses, parser.tree_flag)
 
   lex = exp.make_lex()
   yacc = exp.make_yacc_definition()
@@ -254,4 +280,3 @@ if ARGV[0] then
 else
   puts "file is nothing. input code."
 end
-
