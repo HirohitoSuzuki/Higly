@@ -1,0 +1,84 @@
+<expression>
+%assoc = left
+%action = tree
+%nonterm = "type_name", "unaryExpression", "expression",
+           "expression", "argumentExpressionList", "IDENTIFIER",
+           "initializerList", "castExpression"
+
+postfixExpression
+  : x"++" | x"--" | x"[""expression""]" | x"("")"
+  | x "(" "argumentExpressionList" ")"
+  | x "." "IDENTIFIER"
+  | x "->" "IDENTIFIER"
+  | "(" "type_name" ")" "{" "initializerList" "}"
+  | "(" "type_name" ")" "{" "initializerList" "," "}"
+  ;
+
+unaryExpression(right)
+  : "++"x | "--"x | "sizeof""(""type_name"")" | "sizeof"x
+  | "&" "castExpression"
+  | "*" "castExpression"
+  | "+" "castExpression"
+  | "-" "castExpression"
+  | "~" "castExpression"
+  | "!" "castExpression"
+  ;
+
+castExpression(right)
+  : "(""type_name"")"x
+  ;
+
+multiplecativeExpression
+  : x"*"x | x"/"x | x"%"x
+  ;
+
+additiveExpression
+  : x"+"x | x"-"x
+  ;
+
+shiftExpression
+  : x"<<"x | x">>"x
+  ;
+
+relationalExpression
+  : x"<"x | x">"x | x"<="x | x">="x
+  ;
+
+equalityExpression
+  : x"=="x | x"=!"x
+  ;
+
+bitwiseAnd
+  : x"&"x
+  ;
+
+bitwiseXor
+  : x"^"x
+  ;
+
+bitwiseOr
+  : x"|"x
+  ;
+
+boolAnd
+  : x"&&"x
+  ;
+
+boolOr
+  : x"||"x
+  ;
+
+conditionExpression(right)
+  : x"?""expression"":"x
+  ;
+
+assignExpression(right)
+  : "unaryExpression""="x | "unaryExpression""+="x | "unaryExpression""-="x
+  | "unaryExpression""*="x | "unaryExpression""/="x | "unaryExpression""%="x
+  | "unaryExpression""<<="x | "unaryExpression"">>="x | "unaryExpression""&="x
+  | "unaryExpression""^="x | "unaryExpression""|="x
+  ;
+
+commaExpression
+  : x","x
+  ;

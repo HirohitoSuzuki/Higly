@@ -1,58 +1,78 @@
-%expression(left)
+<expression>
+%assoc = left
+%nonterm = "type_name", "argumentExpressionList",
+           "expression", "initializerList"
 
-commaExpression
-  : x","x
+postfixExpression
+  : x "++" | x "--" | x "[" "expression" "]" | x "(" ")"
+  | x "(" "argumentExpressionList" ")"
+  | x "." x
+  | x "->" x
+  | "(" "type_name" ")" "{" "initializerList" "}"
+  | "(" "type_name" ")" "{" "initializerList" "," "}"
   ;
 
-assignExpression(right)
-  : x"="x | x"+="x | x"-="x | x"*="x | x"/="x | x"%="x | x"<<="x
-  | x">>="x | x"&="x | x"^="x | x"|="x
+unaryExpression(right)
+  : "++" x | "--" x | "sizeof" "(" "type_name" ")" 
+  | "sizeof" x | "&" x | "*" x | "+" x
+  | "-" x | "~" x | "!" x
   ;
 
-conditionExpression(right)
-  : x"?"x":"x
+castExpression(right)
+  : "(" "type_name" ")" x
   ;
 
-boolOr
-  : x"||"x
-  ;
-
-boolAnd
-  : x"&&"x
-  ;
-
-bitwiseOr
-  : x"|"x
-  ;
-
-bitwiseXor
-  : x"^"x
-  ;
-
-bitwiseAnd
-  : x"&"x
-  ;
-
-equaltiveExpression
-  : x"=="x | x"=!"x
-  ;
-
-rerativeExpression(nonassoc)
-  : x"<"x | x">"x | x"<="x | x">="x
+multiplecativeExpression
+  : x "*" x | x "/" x | x "%" x
   ;
 
 additiveExpression
-  : x"+"x | x"-"x
+  : x "+" x | x "-" x
   ;
 
-multplecativeExpression
-  : x"*"x | x"/"x | x"%"x
+shiftExpression
+  : x "<<" x | x ">>" x
   ;
 
-unaryExpression
-  : "++"x | "--"x | "~"x | "!"x | "+"x | "-"x
+relationalExpression
+  : x "<" x | x ">" x | x "<=" x | x ">=" x
   ;
 
-paClass.postfixExpression
-  : x"++" | x"--"
+equalityExpression
+  : x "==" x | x "=!" x
+  ;
+
+bitwiseAnd
+  : x "&" x
+  ;
+
+bitwiseXor
+  : x "^" x
+  ;
+
+bitwiseOr
+  : x "|" x
+  ;
+
+boolAnd
+  : x "&&" x
+  ;
+
+boolOr
+  : x "||" x
+  ;
+
+conditionExpression(right)
+  : x "?" x ":" x
+  ;
+
+assignExpression(right)
+  : x "=" x | x "+=" x | x "-=" x
+  | x "*=" x | x "/=" x | x "%=" x
+  | x"<<=" x | x ">>=" x | x "&=" x
+  | x "^=" x | x "|=" x
+  ;
+
+commaExpression
+  : x "," x
   ;

@@ -8,12 +8,12 @@ class Expression
   def make_lex
     code = "D			[0-9]\nL			[a-zA-Z_]\n"
     code += "%%\n"
-    t = @operators.sort_by do |k, _|
-      k =~ /\d+/
+    t = @operators.sort_by do |_, v|
+      v =~ /\d+/
       $&.to_i
     end.to_h
     t.each do |key, value|
-      code += "\"#{value}\"  { return(#{key}); }\n"
+      code += "\"#{key}\"  { return(#{value}); }\n"
     end
 
     code += "{L}({L}|{D})*  { return (IDENTIFIER);}\n"
@@ -29,12 +29,12 @@ class Expression
     code = '%token'
     i = 0
 
-    @operators.each do |k, _|
+    @operators.each do |_, v|
       if i >= 5
         code += "\n%token"
         i = 0
       end
-      code += " #{k}"
+      code += " #{v}"
       i += 1
     end
     code += "\n"
@@ -184,8 +184,20 @@ class Expression
   end
 
   def make_yacc_rule
-    code = "expression\n  : #{@opclasses.first.name}"
-    code += "{ tree = $1; }" if @acheck
+
+    code = "primaryExpression\n"
+    primary_list = ["IDENTIFIER", "INT_LITERAL", "FLOAT_LITERAL", "STRING_LITERAL"]
+    primary_list.each_with_index do |x, i|
+      if i == 0
+        code += "  : #{x}"
+      else
+        code += "  | #{x}" if i != 0
+      end
+      code += make_action([x]);
+      code += "\n"
+    end
+    code += "  | '(' expression ')'"
+    code += make_action(["(", 1, ")"])
     code += "\n  ;\n\n"
 
     @opclasses.each do |opclass|
@@ -269,21 +281,10 @@ class Expression
       end
       code += "  ;\n\n"
     end
-
-    code += "primaryExpression\n"
-    primary_list = ["IDENTIFIER", "INT_LITERAL", "FLOAT_LITERAL", "STRING_LITERAL"]
-    primary_list.each_with_index do |x, i|
-      if i == 0
-        code += "  : #{x}"
-      else
-        code += "  | #{x}" if i != 0
-      end
-      code += make_action([x]);
-      code += "\n"
-    end
-    code += "  ;\n\n%%\n"
-
-    code
+    
+    code += "expression\n  : #{@opclasses.last.name}"
+    code += "{ tree = $1; }" if @acheck
+    code += "\n  ;\n\n%%\n"
   end
 
   def make_yacc_footer()

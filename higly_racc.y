@@ -7,23 +7,15 @@ expression
     tmp = []
     prename = "primaryExpression"
     @opclasses.each do |_,v|
-      tmp.append(v)
-    end
-    tmp.reverse!.each do |v|
       if v.prename == nil
         v.prename = prename
         v.op_list << Op.new(:nonterm, [prename])
         @opclasses[v.name] = v
         prename = v.name
       end
+      tmp << v
     end
-    tmp = @opclasses
-    @opclasses = []
-    tmp.each do |_, v|
-      @opclasses << v
-    end
-    tmp = @operators.invert
-    @operators = tmp
+    @opclasses = tmp
   }
   
 options
@@ -59,7 +51,7 @@ assoc
   | RIGHT  { result = :right }
 
 expstmts
-  : expstmt expstmts  { result = val[0] + val[1] }
+  : expstmts expstmt  { result = val[1] + val[0] }
   | expstmt  { result = val[0] }
 
 expstmt
@@ -132,18 +124,6 @@ class Op
   attr_reader :kind, :operators
 end
 
-class OpCode
-  def initialize(name, prename, kind)
-    @name = name
-    @prename = prename
-    @kind = kind
-    @code = ""
-  end
-
-  attr_reader :name, :prename, :kind
-  attr_accessor :code
-end
-
 ---- inner
 attr_reader :opclasses, :operators, :tree_flag, :nonterms
 
@@ -154,7 +134,8 @@ def parse(f)
   @opclasses = Hash.new
   @operators = Hash.new
   @nonterms = Hash.new
-  @default_assoc = 0
+  @default_assoc = :left
+  @tree_flag = false
 
   f.each do |line|
     line.strip!

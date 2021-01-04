@@ -29,7 +29,7 @@ assoc
   | RIGHT
 
 expstmts
-  : expstmts expstmt
+  : expstmt expstmts
   | expstmt
 
 expstmt
@@ -54,5 +54,5 @@ operator
   | S_LITERAL operator
 
 operands
-  : ε
+  :
   | IDENTIFIER operators

@@ -1,0 +1,20 @@
+<expression>
+%assoc = left
+%action = tree
+%nonterm = "type_name", ...
+
+...
+
+castExpression(right)
+  : "(""type_name"")"x
+  ;
+
+multplecativeExpression
+  : x"*"x | x"/"x | x"%"x
+  ;
+
+additiveExpression
+  : x"+"x | x"-"x
+  ;
+
+...

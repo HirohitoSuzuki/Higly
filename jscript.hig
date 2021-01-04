@@ -1,0 +1,102 @@
+<expression>
+%assoc = left
+%nonterm = "ReferenceType", "LeftHandSideExpression", "UpdateExpression",
+           "IdentifierName(todo)", "TemplateLiteral(todo)", "SuperProperty(todo)",
+           "MetaProperty(todo)", "UnaryExpression", "ArrowFunction(todo)",
+           "AsyncArrowFunction(todo)", "newArguments(todo)",
+           "CallExpression(todo)", "OptionalExpression(todo)",
+           "AssignmentExpression", "CoalesceExpression(todo)"
+
+MemberExpression
+  : x "[" "expression" "]" | x "." "IdentifierName(todo)"
+  | x "TemplateLiteral(todo)" | "SuperProperty(todo)" 
+  | "MetaProperty(todo)" | "newArguments(todo)"
+  ;
+
+NewExpression
+  : "new" x
+  ;
+
+LeftHandSideExpression
+  : "CallExpression(todo)" | "OptionalExpression(todo)"
+  ;
+
+UpdateExpression(nonassoc)
+  : x "++" | x "--"
+  | "++" "UnaryExpression" | "--" "UnaryExpression"
+  ;
+
+UnaryExpression
+  : "!" x | "~" x | "+" x | "-" x
+  | "typeof" x | "void" x | "delete" x 
+  | "await" x
+  ;
+
+ExponentiationExpression(right)
+  : "UpdateExpression" "**" x
+  ;
+
+MultiplicativeExpression
+  : x "*" x | x "/" x | x "%" x
+  ;
+
+AdditiveExpression
+  : x "+" x | x "-" x
+  ;
+
+ShiftExpression
+  : x "<<" x | x ">>" x | x ">>>" x
+  ;
+
+RelationalExpression
+  : x "<" x | x ">" x | x "<=" x | x ">=" x
+  | x "in" x | x "instanceof" x
+  ;
+
+EqualityExpression
+  : x "==" x | x "=!" x | x "===" x | x "!==" x
+  ;
+
+BitwiseAndExpression
+  : x "&" x
+  ;
+
+BitwiseXorExpression
+  : x "^" x
+  ;
+
+BitwiseOrExpression
+  : x "|" x
+  ;
+
+ConditionalAndExpression
+  : x "&&" x
+  ;
+
+ConditionalOrExpression
+  : x "||" x
+  ;
+
+ShortCircuitExpression
+  : "CoalesceExpression(todo)"
+  ;
+
+ConditionalExpression(right)
+  : x "?" "AssignmentExpression" ":" "AssignmentExpression"
+  ;
+
+AssignExpression(right)
+  : "ArrowFunction(todo)" | "AsyncArrowFunction(todo)"
+  | "LeftHandSideExpression" "=" x | "LeftHandSideExpression" "+=" x | "LeftHandSideExpression" "-=" x
+  | "LeftHandSideExpression" "*=" x | "LeftHandSideExpression" "/=" x | "LeftHandSideExpression" "%=" x
+  | "LeftHandSideExpression" "<<=" x | "LeftHandSideExpression" ">>=" x | "LeftHandSideExpression" ">>>="x
+  | "LeftHandSideExpression" "&=" x | "LeftHandSideExpression" "^=" x | "LeftHandSideExpression" "|=" x
+  ;
+
+AssignExpression.YieldExpression
+  : "yield" | "yield" x | "yield" "*" x 
+  ;
+
+CommaExpression
+  : x "," x
+  ;

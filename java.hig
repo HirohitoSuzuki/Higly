@@ -1,0 +1,86 @@
+<expression>
+%assoc = left
+%nonterm = "expression", "LeftHandSide", "ReferenceType",
+           "PrimitiveType", "DimsOpt", "Name", "Dims",
+           "UnaryExpressionNotPlusMinus", "CastExpression(後で書く)",
+           "UnaryExpression"
+
+PostFixExpression
+  : "Name"
+  ;
+
+PostFixExpression.PostIncrementExpression
+  : x "++"
+  ;
+
+PostFixExpression.PostDecrementExpression
+  : x "--"
+  ;
+
+UnaryExpressionNotPlusMinus(right)
+  : "~" "UnaryExpression" | "!" "UnaryExpression" | "CastExpression(後で書く)"
+  ;
+
+UnaryExpression(right)
+  : "+" x | "-" x
+  ;
+
+UnaryExpression.PreIncrementExpression
+  : "++" x
+  ;
+
+UnaryExpression.PreDecrementExpression
+  : "--" x
+  ;
+
+MultiplecativeExpression
+  : x"*"x | x"/"x | x"%"x
+  ;
+
+AdditiveExpression
+  : x"+"x | x"-"x
+  ;
+
+ShiftExpression
+  : x "<<" x | x ">>" x | x ">>>" x
+  ;
+
+RelationalExpression
+  : x "<" x | x ">" x | x "<=" x | x ">=" x
+  | x "instanceof" "ReferenceType"
+  ;
+
+EqualityExpression
+  : x "==" x | x "=!" x
+  ;
+
+BitwiseAndExpression
+  : x "&" x
+  ;
+
+BitwiseXorExpression
+  : x "^" x
+  ;
+
+BitwiseOrExpression
+  : x "|" x
+  ;
+
+ConditionalAndExpression
+  : x "&&" x
+  ;
+
+ConditionalOrExpression
+  : x "||" x
+  ;
+
+ConditionalExpression(right)
+  : x "?" "expression" ":" x
+  ;
+
+AssignExpression(right)
+  : "LeftHandSide" "=" x | "LeftHandSide" "+=" x | "LeftHandSide" "-=" x
+  | "LeftHandSide" "*=" x | "LeftHandSide" "/=" x | "LeftHandSide" "%=" x
+  | "LeftHandSide" "<<=" x | "LeftHandSide" ">>=" x | "LeftHandSide" ">>>="x
+  | "LeftHandSide" "&=" x | "LeftHandSide" "^=" x | "LeftHandSide" "|=" x
+  ;
