@@ -15,7 +15,7 @@ expression
       end
       tmp << v
     end
-    @opclasses = tmp
+    @opclasses = tmp.reverse
   }
   
 options

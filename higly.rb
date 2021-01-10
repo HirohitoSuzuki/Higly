@@ -340,7 +340,7 @@ module_eval(<<'.,.,', 'higly_racc.y', 6)
       end
       tmp << v
     end
-    @opclasses = tmp
+    @opclasses = tmp.reverse
   
     result
   end

@@ -8,8 +8,6 @@ L			[a-zA-Z_]
 "."  { return('.'); }
 "sizeof"  { return(SIZEOF); }
 "int"  { return(INT); }
-"float"  { return(FLOAT); }
-"double"  { return(DOUBLE); }
 "char"  { return(CHAR); }
 "&"  { return('&'); }
 "*"  { return('*'); }

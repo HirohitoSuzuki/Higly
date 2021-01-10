@@ -1,5 +1,6 @@
 <expression>
 %assoc = left
+%action = tree
 %operator = 'type_name', 'argumentExpressionList', 'expression'
 
 postfixExpression

@@ -185,19 +185,8 @@ class Expression
 
   def make_yacc_rule
 
-    code = "primaryExpression\n"
-    primary_list = ["IDENTIFIER", "INT_LITERAL", "FLOAT_LITERAL", "STRING_LITERAL"]
-    primary_list.each_with_index do |x, i|
-      if i == 0
-        code += "  : #{x}"
-      else
-        code += "  | #{x}" if i != 0
-      end
-      code += make_action([x]);
-      code += "\n"
-    end
-    code += "  | '(' expression ')'"
-    code += make_action(["(", 1, ")"])
+    code = "expression\n  : #{@opclasses.first.name}"
+    code += "{ tree = $1; }" if @acheck
     code += "\n  ;\n\n"
 
     @opclasses.each do |opclass|
@@ -260,7 +249,7 @@ class Expression
           code += op.op_list[0].instance_of?(Integer) ? " #{op1}" : " #{op.op_list[0]}"
           code += " #{op.op_list[1]}"
           code += op.op_list[2].instance_of?(Integer) ? " #{op2}" : " #{op.op_list[2]}"
-          code += make_action([1, op.op_list[0], 1])
+          code += make_action([1, op.op_list[1], 1])
 
         when :ternary
           case opclass.assoc
@@ -283,16 +272,28 @@ class Expression
           code += op.op_list[2].instance_of?(Integer) ? " #{op2}" : " #{op.op_list[2]}"
           code += " #{op.op_list[3]}"
           code += op.op_list[4].instance_of?(Integer) ? " #{op3}" : " #{op.op_list[4]}"
-          code += make_action([1, op.op_list[0], 1, op.op_list[1], 1])
+          code += make_action([1, op.op_list[1], 1, op.op_list[3], 1])
         end
         code += "\n"
       end
       code += "  ;\n\n"
     end
     
-    code += "expression\n  : #{@opclasses.last.name}"
-    code += "{ tree = $1; }" if @acheck
+    code += "primaryExpression\n"
+    primary_list = ["IDENTIFIER", "INT_LITERAL", "FLOAT_LITERAL", "STRING_LITERAL"]
+    primary_list.each_with_index do |x, i|
+      if i == 0
+        code += "  : #{x}"
+      else
+        code += "  | #{x}" if i != 0
+      end
+      code += make_action([x]);
+      code += "\n"
+    end
+    code += "  | '(' expression ')'"
+    code += make_action(["(", 1, ")"])
     code += "\n  ;\n\n%%\n"
+    
   end
 
   def make_yacc_footer()
