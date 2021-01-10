@@ -1,29 +1,15 @@
 %token OP1 OP2 ']' '[' ')'
-%token '(' '.' OP3 SIZEOF '&'
-%token '*' '+' '-' '~' '!'
-%token '/' '%' OP4 OP5 '<'
-%token '>' OP6 OP7 OP8 OP9
-%token '^' '|' OP10 OP11 '?'
-%token ':' '=' OP12 OP13 OP14
-%token OP15 OP16 OP17 OP18 OP19
-%token OP20 OP21 ','
-%token INT FLOAT DOUBLE CHAR
+%token '(' '.' OP3 '}' '{'
+%token ',' SIZEOF '&' '*' '+'
+%token '-' '~' '!' '/' '%'
+%token OP4 OP5 '<' '>' OP6
+%token OP7 OP8 OP9 '^' '|'
+%token OP10 OP11 '?' ':' '='
+%token OP12 OP13 OP14 OP15 OP16
+%token OP17 OP18 OP19 OP20 OP21
 %token IDENTIFIER INT_LITERAL FLOAT_LITERAL STRING_LITERAL
-%start expression
 
 %%
-
-type_name
-  : INT
-  | FLOAT
-  | DOUBLE
-  | CHAR
-  ;
-
-argumentExpressionList
-	: assignExpression
-	| argumentExpressionList ',' assignExpression
-	;
 
 primaryExpression
   : IDENTIFIER
@@ -39,8 +25,10 @@ postfixExpression
   | postfixExpression '[' expression ']'
   | postfixExpression '(' ')'
   | postfixExpression '(' argumentExpressionList ')'
-  | postfixExpression '.' IDENTIFIER
-  | postfixExpression OP3 IDENTIFIER
+  | postfixExpression '.' primaryExpression
+  | postfixExpression OP3 primaryExpression
+  | '(' type_name ')' '{' initializerList '}'
+  | '(' type_name ')' '{' initializerList ',' '}'
   | primaryExpression
   ;
 
@@ -49,12 +37,12 @@ unaryExpression
   | OP2 unaryExpression
   | SIZEOF '(' type_name ')'
   | SIZEOF unaryExpression
-  | '&' castExpression
-  | '*' castExpression
-  | '+' castExpression
-  | '-' castExpression
-  | '~' castExpression
-  | '!' castExpression
+  | '&' unaryExpression
+  | '*' unaryExpression
+  | '+' unaryExpression
+  | '-' unaryExpression
+  | '~' unaryExpression
+  | '!' unaryExpression
   | postfixExpression
   ;
 
@@ -122,22 +110,22 @@ boolOr
   ;
 
 conditionExpression
-  : boolOr '?' expression ':' conditionExpression
+  : boolOr '?' conditionExpression ':' conditionExpression
   | boolOr
   ;
 
 assignExpression
-  : unaryExpression '=' assignExpression
-  | unaryExpression OP12 assignExpression
-  | unaryExpression OP13 assignExpression
-  | unaryExpression OP14 assignExpression
-  | unaryExpression OP15 assignExpression
-  | unaryExpression OP16 assignExpression
-  | unaryExpression OP17 assignExpression
-  | unaryExpression OP18 assignExpression
-  | unaryExpression OP19 assignExpression
-  | unaryExpression OP20 assignExpression
-  | unaryExpression OP21 assignExpression
+  : conditionExpression '=' assignExpression
+  | conditionExpression OP12 assignExpression
+  | conditionExpression OP13 assignExpression
+  | conditionExpression OP14 assignExpression
+  | conditionExpression OP15 assignExpression
+  | conditionExpression OP16 assignExpression
+  | conditionExpression OP17 assignExpression
+  | conditionExpression OP18 assignExpression
+  | conditionExpression OP19 assignExpression
+  | conditionExpression OP20 assignExpression
+  | conditionExpression OP21 assignExpression
   | conditionExpression
   ;
 

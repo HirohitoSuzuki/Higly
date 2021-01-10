@@ -1,78 +1,78 @@
 <expression>
 %assoc = left
-%nonterm = "type_name", "argumentExpressionList",
-           "expression", "initializerList"
+%nonterm = 'type_name', 'argumentExpressionList',
+           'expression', 'initializerList'
 
 postfixExpression
-  : x "++" | x "--" | x "[" "expression" "]" | x "(" ")"
-  | x "(" "argumentExpressionList" ")"
-  | x "." x
-  | x "->" x
-  | "(" "type_name" ")" "{" "initializerList" "}"
-  | "(" "type_name" ")" "{" "initializerList" "," "}"
+  : _ '++' | _ '--' | _ '[' 'expression' ']' | _ '(' ')'
+  | _ '(' 'argumentExpressionList' ')'
+  | _ '.' _
+  | _ '->' _
+  | '(' 'type_name' ')' '{' 'initializerList' '}'
+  | '(' 'type_name' ')' '{' 'initializerList' ',' '}'
   ;
 
 unaryExpression(right)
-  : "++" x | "--" x | "sizeof" "(" "type_name" ")" 
-  | "sizeof" x | "&" x | "*" x | "+" x
-  | "-" x | "~" x | "!" x
+  : '++' _ | '--' _ | 'sizeof' '(' 'type_name' ')' 
+  | 'sizeof' _ | '&' _ | '*' _ | '+' _
+  | '-' _ | '~' _ | '!' _
   ;
 
 castExpression(right)
-  : "(" "type_name" ")" x
+  : '(' 'type_name' ')' _
   ;
 
 multiplecativeExpression
-  : x "*" x | x "/" x | x "%" x
+  : _ '*' _ | _ '/' _ | _ '%' _
   ;
 
 additiveExpression
-  : x "+" x | x "-" x
+  : _ '+' _ | _ '-' _
   ;
 
 shiftExpression
-  : x "<<" x | x ">>" x
+  : _ '<<' _ | _ '>>' _
   ;
 
 relationalExpression
-  : x "<" x | x ">" x | x "<=" x | x ">=" x
+  : _ '<' _ | _ '>' _ | _ '<=' _ | _ '>=' _
   ;
 
 equalityExpression
-  : x "==" x | x "=!" x
+  : _ '==' _ | _ '=!' _
   ;
 
 bitwiseAnd
-  : x "&" x
+  : _ '&' _
   ;
 
 bitwiseXor
-  : x "^" x
+  : _ '^' _
   ;
 
 bitwiseOr
-  : x "|" x
+  : _ '|' _
   ;
 
 boolAnd
-  : x "&&" x
+  : _ '&&' _
   ;
 
 boolOr
-  : x "||" x
+  : _ '||' _
   ;
 
 conditionExpression(right)
-  : x "?" x ":" x
+  : _ '?' _ ':' _
   ;
 
 assignExpression(right)
-  : x "=" x | x "+=" x | x "-=" x
-  | x "*=" x | x "/=" x | x "%=" x
-  | x"<<=" x | x ">>=" x | x "&=" x
-  | x "^=" x | x "|=" x
+  : _ '=' _ | _ '+=' _ | _ '-=' _
+  | _ '*=' _ | _ '/=' _ | _ '%=' _
+  | _'<<=' _ | _ '>>=' _ | _ '&=' _
+  | _ '^=' _ | _ '|=' _
   ;
 
 commaExpression
-  : x "," x
+  : _ ',' _
   ;

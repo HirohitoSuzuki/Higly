@@ -25,11 +25,16 @@ postfixExpression
   | postfixExpression '[' expression ']'
   | postfixExpression '(' ')'
   | postfixExpression '(' argumentExpressionList ')'
-  | postfixExpression '.' primaryExpression
-  | postfixExpression OP3 primaryExpression
+  | postfixExpression '.' IDENTIFIER
+  | postfixExpression OP3 IDENTIFIER
   | '(' type_name ')' '{' initializerList '}'
   | '(' type_name ')' '{' initializerList ',' '}'
   | primaryExpression
+  ;
+
+argumentExpressionList
+  : assignExpression
+  | argumentExpressionList ',' assignExpression
   ;
 
 unaryExpression
@@ -37,13 +42,17 @@ unaryExpression
   | OP2 unaryExpression
   | SIZEOF '(' type_name ')'
   | SIZEOF unaryExpression
-  | '&' unaryExpression
-  | '*' unaryExpression
-  | '+' unaryExpression
-  | '-' unaryExpression
-  | '~' unaryExpression
-  | '!' unaryExpression
+  | unaryOperator castExpression
   | postfixExpression
+  ;
+
+unaryOperator
+  : '&'
+  | '*'
+  | '+'
+  | '-'
+  | '~'
+  | '!'
   ;
 
 castExpression
@@ -115,18 +124,22 @@ conditionExpression
   ;
 
 assignExpression
-  : conditionExpression '=' assignExpression
-  | conditionExpression OP12 assignExpression
-  | conditionExpression OP13 assignExpression
-  | conditionExpression OP14 assignExpression
-  | conditionExpression OP15 assignExpression
-  | conditionExpression OP16 assignExpression
-  | conditionExpression OP17 assignExpression
-  | conditionExpression OP18 assignExpression
-  | conditionExpression OP19 assignExpression
-  | conditionExpression OP20 assignExpression
-  | conditionExpression OP21 assignExpression
+  : unaryExpression assignOperator assignExpression
   | conditionExpression
+  ;
+
+assignOperator
+  : '='
+  | OP12
+  | OP13
+  | OP14
+  | OP15
+  | OP16
+  | OP17
+  | OP18
+  | OP19
+  | OP20
+  | OP21
   ;
 
 commaExpression

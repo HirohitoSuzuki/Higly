@@ -209,73 +209,81 @@ class Expression
       end
 
       # 演算子の記述
-      opclass.op_list.each_with_index do |op, i|
+      opclass.operators.each_with_index do |op, i|
         i == 0 ? code += "  :" : code += '  |'
 
         case op.kind
         when :nonterm
-          code += " #{op.operators[0]}"
+          code += " #{op.op_list[0]}"
 
         when :lunary
-          code += " #{op.operators[0]}"
-          case opclass.assoc
-          when :nonassoc
-            code += " #{opclass.prename}"
+          code += " #{op.op_list[0]}"
+          if op.op_list[1].instance_of?(Integer)
+            case opclass.assoc
+            when :nonassoc
+              code += " #{opclass.prename}"
+            else
+              code += " #{name}"
+            end
           else
-            code += " #{name}"
+            code += " #{op.op_list[1]}"
           end
-          code += make_action([op.operators[0], 1])
+          code += make_action([op.op_list[0], 1])
 
         when :runary
-          case opclass.assoc
-          when :nonassoc
-            code += " #{opclass.prename}"
+          if op.op_list[0].instance_of?(Integer)
+            case opclass.assoc
+            when :nonassoc
+              code += " #{opclass.prename}"
+            else
+              code += " #{name}"
+            end
           else
-            code += " #{name}"
+            code += " #{op.op_list[0]}"
           end
-          code += " #{op.operators[0]}"
-          code += make_action([1, op.operators[0]])
+          code += " #{op.op_list[1]}"
+          code += make_action([1, op.op_list[1]])
 
         when :binary
           case opclass.assoc
           when :nonassoc
-            code += " #{opclass.prename}"
-            code += " #{op.operators[0]}"
-
-            code += " #{opclass.prename}"
+            op1 = opclass.prename
+            op2 = opclass.prename
           when :left
-            code += " #{name}"
-            code += " #{op.operators[0]}"
-            code += " #{opclass.prename}"
+            op1 = name
+            op2 = opclass.prename
           when :right
-            code += " #{opclass.prename}"
-            code += " #{op.operators[0]}"
-            code += " #{name}"
+            op1 = opclass.prename
+            op2 = name
           end
-          code += make_action([1, op.operators[0], 1])
+
+          code += op.op_list[0].instance_of?(Integer) ? " #{op1}" : " #{op.op_list[0]}"
+          code += " #{op.op_list[1]}"
+          code += op.op_list[2].instance_of?(Integer) ? " #{op2}" : " #{op.op_list[2]}"
+          code += make_action([1, op.op_list[0], 1])
 
         when :ternary
           case opclass.assoc
           when :nonassoc
-            code += " #{opclass.prename}"
-            code += " #{op.operators[0]}"
-            code += " #{opclass.prename}"
-            code += " #{op.operators[1]}"
-            code += " #{opclass.prename}"
+            op1 = opclass.prename
+            op2 = opclass.prename
+            op3 = opclass.prename
           when :left
-            code += " #{name}"
-            code += " #{op.operators[0]}"
-            code += " #{name}"
-            code += " #{op.operators[1]}"
-            code += " #{opclass.prename}"
+            op1 = name
+            op2 = name
+            op3 = opclass.prename
           when :right
-            code += " #{opclass.prename}"
-            code += " #{op.operators[0]}"
-            code += " #{name}"
-            code += " #{op.operators[1]}"
-            code += " #{name}"
+            op1 = opclass.prename
+            op2 = name
+            op3 = name
           end
-          code += make_action([1, op.operators[0], 1, op.operators[1], 1])
+
+          code += op.op_list[0].instance_of?(Integer) ? " #{op1}" : " #{op.op_list[0]}"
+          code += " #{op.op_list[1]}"
+          code += op.op_list[2].instance_of?(Integer) ? " #{op2}" : " #{op.op_list[2]}"
+          code += " #{op.op_list[3]}"
+          code += op.op_list[4].instance_of?(Integer) ? " #{op3}" : " #{op.op_list[4]}"
+          code += make_action([1, op.op_list[0], 1, op.op_list[1], 1])
         end
         code += "\n"
       end

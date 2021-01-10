@@ -9,7 +9,7 @@ expression
     @opclasses.each do |_,v|
       if v.prename == nil
         v.prename = prename
-        v.op_list << Op.new(:nonterm, [prename])
+        v.operators << Op.new(:nonterm, [prename])
         @opclasses[v.name] = v
         prename = v.name
       end
@@ -34,7 +34,7 @@ dassoc
   : ASSOC '=' assoc  { @default_assoc = val[2] }
 
 nonterm
-  : NONTERM '=' nonterms
+  : OPERATOR '=' nonterms
   {
     val[2].each do |v|
       @nonterms[v] = 1
@@ -58,7 +58,7 @@ expstmt
   : IDENTIFIER '.' IDENTIFIER ':' op_list ';'
   {
     if @opclasses.key?(val[0])
-      @opclasses[val[0]].op_list << Op.new(:nonterm, [val[2]])
+      @opclasses[val[0]].operators << Op.new(:nonterm, [val[2]])
     else
       @opclasses[val[0]] = OpClass.new(val[0], @default_assoc, [Op.new(:nonterm, [val[2]])])
     end
@@ -70,7 +70,7 @@ expstmt
   | IDENTIFIER '.' IDENTIFIER '(' assoc ')' ':' op_list ';'
   {
     if @opclasses.key?(val[0])
-      @opclasses[val[0]].op_list << Op.new(:nonterm, [val[2]])
+      @opclasses[val[0]].operators << Op.new(:nonterm, [val[2]])
     else
       @opclasses[val[0]] = OpClass.new(val[0], val[4], [Op.new(:nonterm, [val[2]])])
     end
@@ -89,11 +89,17 @@ op_list
   | op_list '|' op_def  { result = val[0]<<val[2] }
 
 op_def
-  : operator  { result = Op.new(:nonterm, [val[0]]) }
-  | operator IDENTIFIER  { result = Op.new(:lunary, [val[0]])}
-  | IDENTIFIER operator  { result = Op.new(:runary, [val[1]])}
-  | IDENTIFIER operator IDENTIFIER  { result = Op.new(:binary, [val[1]])}
-  | IDENTIFIER operator IDENTIFIER operator IDENTIFIER  { result = Op.new(:ternary, [val[1],val[3]])}
+  : operator  { result = Op.new(:nonterm, val) }
+  | operand  { result = Op.new(:nonterm, val) }
+  | operator operand  { result = Op.new(:lunary, val)}
+  | operand operator  { result = Op.new(:runary, val)}
+  | operand operator operand  { result = Op.new(:binary, val)}
+  | operand operator operand operator operand  { result = Op.new(:ternary, val)}
+
+operand
+  : '_'  { result = 0 }
+  | IDENTIFIER  { result = val[0] }
+  ;
 
 operator
   : S_LITERAL  { result = token_register(val[0]) }
@@ -103,25 +109,25 @@ operator
 require './higly_expression'
 
 class OpClass
-  def initialize(name, assoc, op_list)
+  def initialize(name, assoc, operators)
     @name = name
     @assoc = assoc
-    @op_list = op_list
+    @operators = operators
     @prename = nil
     @parent = nil
   end
 
   attr_reader :assoc
-  attr_accessor :name, :prename, :op_list, :parent
+  attr_accessor :name, :prename, :operators, :parent
 end
 
 class Op
-  def initialize(kind, operators)
+  def initialize(kind, op_list)
     @kind = kind
-    @operators = operators
+    @op_list = op_list
   end
 
-  attr_reader :kind, :operators
+  attr_reader :kind, :op_list
 end
 
 ---- inner
@@ -151,8 +157,8 @@ def parse(f)
         @q << [:ACTION, $&]
       when /\A%assoc/
         @q << [:ASSOC, $&]
-      when /\A%nonterm/
-        @q << [:NONTERM, $&]
+      when /\A%operator/
+        @q << [:OPERATOR, $&]
       when /\Aright/
         @q << [:RIGHT, $&]
       when /\Anonassoc/
@@ -161,13 +167,15 @@ def parse(f)
         @q << [:ACHECK, $&]
       when /\A%\+/
         @q << [:PPLUS, $&]
+      when /\A_/
+        @q << ['_', $&]
       when /\A@/
         @q << [:OP, $&]
       when /\A(0|[1-9]\d*)\.\d+/
         @q << [:NUM, $&]
       when /\A(0|[1-9])\d*/
         @q << [:NUM, $&]
-      when /\A"([[^"]&&\S]*)"/
+      when /\A'([[^']&&\S]*)'/
         @q << [:S_LITERAL, $1]
       when /\A\(/
         @q << ['(', $&]

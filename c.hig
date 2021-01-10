@@ -1,84 +1,81 @@
 <expression>
 %assoc = left
-%action = tree
-%nonterm = "type_name", "unaryExpression", "expression",
-           "expression", "argumentExpressionList", "IDENTIFIER",
-           "initializerList", "castExpression"
+%operator = 'type_name', 'argumentExpressionList', 'expression'
 
 postfixExpression
-  : x"++" | x"--" | x"[""expression""]" | x"("")"
-  | x "(" "argumentExpressionList" ")"
-  | x "." "IDENTIFIER"
-  | x "->" "IDENTIFIER"
-  | "(" "type_name" ")" "{" "initializerList" "}"
-  | "(" "type_name" ")" "{" "initializerList" "," "}"
+  : _ '++' | _ '--' | _ '[' 'expression' ']' | _ '(' ')'
+  | _ '(' 'argumentExpressionList' ')'
+  | _ '.' IDENTIFIER
+  | _ '->' IDENTIFIER
   ;
 
 unaryExpression(right)
-  : "++"x | "--"x | "sizeof""(""type_name"")" | "sizeof"x
-  | "&" "castExpression"
-  | "*" "castExpression"
-  | "+" "castExpression"
-  | "-" "castExpression"
-  | "~" "castExpression"
-  | "!" "castExpression"
+  : '++' _ | '--' _
+  | 'sizeof' '(' 'type_name' ')'
+  | 'sizeof' _
+  | '&' castExpression
+  | '*' castExpression
+  | '+' castExpression
+  | '-' castExpression
+  | '~' castExpression
+  | '!' castExpression
   ;
 
 castExpression(right)
-  : "(""type_name"")"x
+  : '(' 'type_name' ')' _
   ;
 
 multiplecativeExpression
-  : x"*"x | x"/"x | x"%"x
+  : _ '*' _ | _ '/' _ | _ '%' _
   ;
 
 additiveExpression
-  : x"+"x | x"-"x
+  : _ '+' _ | _ '-' _
   ;
 
 shiftExpression
-  : x"<<"x | x">>"x
+  : _ '<<' _ | _ '>>' _
   ;
 
 relationalExpression
-  : x"<"x | x">"x | x"<="x | x">="x
+  : _ '<' _ | _ '>' _ | _ '<=' _ | _ '>=' _
   ;
 
 equalityExpression
-  : x"=="x | x"=!"x
+  : _ '==' _ | _ '=!' _
   ;
 
 bitwiseAnd
-  : x"&"x
+  : _ '&' _
   ;
 
 bitwiseXor
-  : x"^"x
+  : _ '^' _
   ;
 
 bitwiseOr
-  : x"|"x
+  : _ '|' _
   ;
 
 boolAnd
-  : x"&&"x
+  : _ '&&' _
   ;
 
 boolOr
-  : x"||"x
+  : _ '||' _
   ;
 
 conditionExpression(right)
-  : x"?""expression"":"x
+  : _ '?' expression ':' _
   ;
 
 assignExpression(right)
-  : "unaryExpression""="x | "unaryExpression""+="x | "unaryExpression""-="x
-  | "unaryExpression""*="x | "unaryExpression""/="x | "unaryExpression""%="x
-  | "unaryExpression""<<="x | "unaryExpression"">>="x | "unaryExpression""&="x
-  | "unaryExpression""^="x | "unaryExpression""|="x
+  : unaryExpression '=' _ | unaryExpression '+=' _ | unaryExpression '-=' _
+  | unaryExpression '*=' _ | unaryExpression '/=' _ | unaryExpression '%=' _
+  | unaryExpression '<<=' _ | unaryExpression '>>=' _ | unaryExpression '&=' _
+  | unaryExpression '^=' _ | unaryExpression '|=' _
   ;
 
 commaExpression
-  : x","x
+  : _ ',' _
   ;

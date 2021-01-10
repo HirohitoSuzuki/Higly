@@ -6,11 +6,10 @@ L			[a-zA-Z_]
 ")"  { return(')'); }
 "("  { return('('); }
 "."  { return('.'); }
+"}"  { return('}'); }
+"{"  { return('{'); }
+","  { return(','); }
 "sizeof"  { return(SIZEOF); }
-"int"  { return(INT); }
-"float"  { return(FLOAT); }
-"double"  { return(DOUBLE); }
-"char"  { return(CHAR); }
 "&"  { return('&'); }
 "*"  { return('*'); }
 "+"  { return('+'); }
@@ -26,7 +25,6 @@ L			[a-zA-Z_]
 "?"  { return('?'); }
 ":"  { return(':'); }
 "="  { return('='); }
-","  { return(','); }
 "++"  { return(OP1); }
 "--"  { return(OP2); }
 "->"  { return(OP3); }
