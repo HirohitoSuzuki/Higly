@@ -12,7 +12,6 @@ postfixExpression
 
 unaryExpression(right)
   : '++' _ | '--' _
-  | 'sizeof' '(' 'type_name' ')'
   | 'sizeof' _
   | '&' castExpression
   | '*' castExpression

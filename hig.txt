@@ -1,0 +1,56 @@
+expression
+  : EXP options expstmts
+  
+options
+  :
+  | dassoc options
+  | action options
+  | nonterm options 
+ 
+action
+  : ACTION '=' action_names
+
+action_names
+  : TREE
+
+dassoc
+  : ASSOC '=' assoc
+
+nonterm
+  : OPERATOR '=' nonterms
+
+nonterms
+  : S_LITERAL ',' nonterms
+  | S_LITERAL
+
+assoc
+  : NONASSOC
+  | LEFT
+  | RIGHT
+
+expstmts
+  : expstmts expstmt
+  | expstmt
+
+expstmt
+  : IDENTIFIER ':' op_list ';'
+  | IDENTIFIER '(' assoc ')' ':' op_list ';'
+
+op_list
+  : op_def
+  | op_list '|' op_def
+
+op_def
+  : operand
+  | operator operand
+  | operand operator
+  | operand operator operand
+  | operand operator operand operator operand
+
+operand
+  : '_'
+  | IDENTIFIER 
+
+operator
+  : S_LITERAL
+  | S_LITERAL operator

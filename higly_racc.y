@@ -3,20 +3,6 @@ class HiglyParser
 rule
 expression
   : EXP options expstmts
-  {
-    tmp = []
-    prename = "primaryExpression"
-    @opclasses.each do |_,v|
-      if v.prename == nil
-        v.prename = prename
-        v.operators << Op.new(:nonterm, [prename])
-        @opclasses[v.name] = v
-        prename = v.name
-      end
-      tmp << v
-    end
-    @opclasses = tmp.reverse
-  }
   
 options
   :
@@ -25,7 +11,7 @@ options
   | nonterm options 
  
 action
-  : ACTION '=' action_names { val[2] == :tree ? @tree_flag = true : nil }
+  : ACTION '=' action_names { @action = val[2] }
 
 action_names
   : TREE  { result = :tree }
@@ -51,50 +37,26 @@ assoc
   | RIGHT  { result = :right }
 
 expstmts
-  : expstmts expstmt  { result = val[1] + val[0] }
-  | expstmt  { result = val[0] }
+  : expstmts expstmt
+  | expstmt
 
 expstmt
-  : IDENTIFIER '.' IDENTIFIER ':' op_list ';'
-  {
-    if @opclasses.key?(val[0])
-      @opclasses[val[0]].operators << Op.new(:nonterm, [val[2]])
-    else
-      @opclasses[val[0]] = OpClass.new(val[0], @default_assoc, [Op.new(:nonterm, [val[2]])])
-    end
-    child = OpClass.new(val[2], @default_assoc, val[4])
-    child.prename = val[0]
-    child.parent = val[0]
-    @opclasses[val[2]] = child
-  }
-  | IDENTIFIER '.' IDENTIFIER '(' assoc ')' ':' op_list ';'
-  {
-    if @opclasses.key?(val[0])
-      @opclasses[val[0]].operators << Op.new(:nonterm, [val[2]])
-    else
-      @opclasses[val[0]] = OpClass.new(val[0], val[4], [Op.new(:nonterm, [val[2]])])
-    end
-    child = OpClass.new(val[2], val[4], val[7])
-    child.prename = val[0]
-    child.parent = val[0]
-    @opclasses[val[2]] = child
-  }
-  | IDENTIFIER ':' op_list ';'
-    { @opclasses[val[0]] = OpClass.new(val[0], @default_assoc, val[2]) }
+  : IDENTIFIER ':' op_list ';'
+    { @opgroups << OpGroup.new(val[0], @default_assoc, val[2]) }
   | IDENTIFIER '(' assoc ')' ':' op_list ';'
-    { @opclasses[val[0]] = OpClass.new(val[0], val[2], val[5]) }
+    { @opgroups << OpGroup.new(val[0], val[2], val[5]) }
 
 op_list
   : op_def  { result = [val[0]] }
   | op_list '|' op_def  { result = val[0]<<val[2] }
 
 op_def
-  : operator  { result = Op.new(:nonterm, val) }
-  | operand  { result = Op.new(:nonterm, val) }
+  : operand  { result = Op.new(:nonterm, val) }
   | operator operand  { result = Op.new(:lunary, val)}
   | operand operator  { result = Op.new(:runary, val)}
   | operand operator operand  { result = Op.new(:binary, val)}
   | operand operator operand operator operand  { result = Op.new(:ternary, val)}
+  ;
 
 operand
   : '_'  { result = 0 }
@@ -102,23 +64,22 @@ operand
   ;
 
 operator
-  : S_LITERAL  { result = token_register(val[0]) }
-  | S_LITERAL operator  { result = token_register(val[0]) + " " + val[1] }
+  : S_LITERAL  { result = token_store(val[0]) }
+  | S_LITERAL operator  { result = token_store(val[0]) + " " + val[1] }
 
 ---- header
 require './higly_expression'
 
-class OpClass
+class OpGroup
   def initialize(name, assoc, operators)
     @name = name
     @assoc = assoc
     @operators = operators
     @prename = nil
-    @parent = nil
   end
 
   attr_reader :assoc
-  attr_accessor :name, :prename, :operators, :parent
+  attr_accessor :name, :prename, :operators
 end
 
 class Op
@@ -131,17 +92,17 @@ class Op
 end
 
 ---- inner
-attr_reader :opclasses, :operators, :tree_flag, :nonterms
+attr_reader :opgroups, :expr_tokens, :action, :nonterms
 
 def parse(f)
   @q = []
   @lineno = 1
   @termno = 1
-  @opclasses = Hash.new
-  @operators = Hash.new
+  @opgroups = []
+  @expr_tokens = Hash.new
   @nonterms = Hash.new
   @default_assoc = :left
-  @tree_flag = false
+  @action = :true
 
   f.each do |line|
     line.strip!
@@ -163,18 +124,10 @@ def parse(f)
         @q << [:RIGHT, $&]
       when /\Anonassoc/
         @q << [:NONASSOC, $&]
-      when /\A-action/
-        @q << [:ACHECK, $&]
-      when /\A%\+/
-        @q << [:PPLUS, $&]
       when /\A_/
         @q << ['_', $&]
       when /\A@/
         @q << [:OP, $&]
-      when /\A(0|[1-9]\d*)\.\d+/
-        @q << [:NUM, $&]
-      when /\A(0|[1-9])\d*/
-        @q << [:NUM, $&]
       when /\A'([[^']&&\S]*)'/
         @q << [:S_LITERAL, $1]
       when /\A\(/
@@ -195,7 +148,9 @@ def parse(f)
         @q << ['|', $&]
       when /\A[a-zA-Z_]\w*/
         @q << [:IDENTIFIER, $&]
-      when /\A./
+      when /\A\S+/
+        @q << [:OTHER, $&]
+      when /\A\s+/
       end
       line = $'
     end
@@ -203,6 +158,17 @@ def parse(f)
   end
   @q << [false, '$']
   do_parse
+
+  prename = "primaryExpression"
+  tmp = []
+  @opgroups.each do |v|
+    v.prename = prename
+    v.operators << Op.new(:nonterm, [prename])
+    tmp << v
+    prename = v.name
+  end
+  @opgroups = tmp.reverse
+
   puts "parse is successfull."
 end
 
@@ -219,11 +185,11 @@ def on_error(t, v, values)
   raise Racc::ParseError, "line #{@lineno}: syntax error on #{v.inspect}."
 end
 
-def token_register(t)
+def token_store(t)
   if @nonterms.key?(t)
     return t
-  elsif @operators.key?(t)
-    return @operators[t]
+  elsif @expr_tokens.key?(t)
+    return @expr_tokens[t]
   else
     if t =~ /\A\w+/ then
       token = t.upcase
@@ -231,9 +197,9 @@ def token_register(t)
       token = "\'#{t}\'"
     else
       token = "OP#{@termno}"
-      @operators.key?(t) ? nil : @termno += 1
+      @expr_tokens.key?(t) ? nil : @termno += 1
     end
-    @operators[t] = token
+    @expr_tokens[t] = token
     return token
   end
 end
@@ -255,12 +221,12 @@ if ARGV[0] then
   end
 
   
-  exp = Expression.new(parser.operators, parser.opclasses, parser.tree_flag)
+  exp = Expression.new(parser.expr_tokens, parser.opgroups, parser.action)
 
   lex = exp.make_lex()
   yacc = exp.make_yacc_definition()
   yacc += exp.make_yacc_rule()
-  yacc += exp.make_yacc_footer()
+  yacc += exp.make_yacc_subroutine()
 
   f1.puts(lex)
   f2.puts(yacc)

@@ -1,6 +1,4 @@
 graph type{
-dpi="200";
-node [fontname="DejaVu Serif Italic"];
 symbol4;
 symbol8;
 symbol3 -- symbol4, symbol8;

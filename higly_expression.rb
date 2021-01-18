@@ -1,14 +1,13 @@
 class Expression
-  def initialize(operators, opclasses, acheck)
-    @operators = operators
-    @opclasses = opclasses
-    @acheck = acheck
+  def initialize(expr_tokens, opgroups, action)
+    @expr_tokens = expr_tokens
+    @opgroups = opgroups
+    @action = action
   end
 
   def make_lex
-    code = "D			[0-9]\nL			[a-zA-Z_]\n"
-    code += "%%\n"
-    t = @operators.sort_by do |_, v|
+    code = "%%\n"
+    t = @expr_tokens.sort_by do |_, v|
       v =~ /\d+/
       $&.to_i
     end.to_h
@@ -16,11 +15,11 @@ class Expression
       code += "\"#{key}\"  { return(#{value}); }\n"
     end
 
-    code += "{L}({L}|{D})*  { return (IDENTIFIER);}\n"
-    code += "[1-9]{D}*  { return(INT_LITERAL); }\n"
+    code += "{[a-zA-Z_]}({[a-zA-Z_]}|{[0-9]})*  { return (IDENTIFIER);}\n"
+    code += "[1-9]{[0-9]}*  { return(INT_LITERAL); }\n"
     code += "\"0\"  { return(INT_LITERAL); }\n"
-    code += "{D}+\".\"{D}+  { return(FLOAT_LITERAL); }\n"
-    code += "L?\\\"(\\\\.|[^\\\\\"\\n])*\\\"  { return(STRING_LITERAL); }\n"
+    code += "{[0-9]}+\".\"{[0-9]}+  { return(FLOAT_LITERAL); }\n"
+    code += "[a-zA-Z_]?\\\"(\\\\.|[^\\\\\"\\n])*\\\"  { return(STRING_LITERAL); }\n"
 
     code
   end
@@ -29,7 +28,7 @@ class Expression
     code = '%token'
     i = 0
 
-    @operators.each do |_, v|
+    @expr_tokens.each do |_, v|
       if i >= 5
         code += "\n%token"
         i = 0
@@ -41,7 +40,7 @@ class Expression
 
     code += "%token IDENTIFIER INT_LITERAL FLOAT_LITERAL STRING_LITERAL\n"
 
-    if @acheck
+    if @action == :tree
       code += "%{\n"
       code += "#include <string.h>\n"
       code += "#include <stdlib.h>\n"
@@ -151,14 +150,20 @@ class Expression
     code
   end
 
-  def make_action(op_list)
-    return '' if @acheck == false
+  def make_yacc_action(op_list)
+    return '' if @action != :tree
 
     name = ''
     i = 1
     count = 0
     op_list.each do |x|
-      name += x if x.instance_of?(String)
+      if x.instance_of?(String)
+        if @expr_tokens.key?(x)
+          name += @expr_tokens[x]
+        else
+          name += x
+        end
+      end
     end
     code = "  { $$ = makeNode(\"#{name}\""
     op_list.each do |x|
@@ -185,20 +190,16 @@ class Expression
 
   def make_yacc_rule
 
-    code = "expression\n  : #{@opclasses.first.name}"
-    code += "{ tree = $1; }" if @acheck
+    code = "expression\n  : #{@opgroups.first.name}"
+    code += "{ tree = $1; }" if @action == :tree
     code += "\n  ;\n\n"
 
-    @opclasses.each do |opclass|
-      code += "#{opclass.name}\n"
-      if opclass.parent == nil
-        name = opclass.name
-      else
-        name = opclass.parent
-      end
+    @opgroups.each do |opgroup|
+      code += "#{opgroup.name}\n"
+      name = opgroup.name
 
       # 演算子の記述
-      opclass.operators.each_with_index do |op, i|
+      opgroup.operators.each_with_index do |op, i|
         i == 0 ? code += "  :" : code += '  |'
 
         case op.kind
@@ -208,22 +209,22 @@ class Expression
         when :lunary
           code += " #{op.op_list[0]}"
           if op.op_list[1].instance_of?(Integer)
-            case opclass.assoc
+            case opgroup.assoc
             when :nonassoc
-              code += " #{opclass.prename}"
+              code += " #{opgroup.prename}"
             else
               code += " #{name}"
             end
           else
             code += " #{op.op_list[1]}"
           end
-          code += make_action([op.op_list[0], 1])
+          code += make_yacc_action([op.op_list[0], 1])
 
         when :runary
           if op.op_list[0].instance_of?(Integer)
-            case opclass.assoc
+            case opgroup.assoc
             when :nonassoc
-              code += " #{opclass.prename}"
+              code += " #{opgroup.prename}"
             else
               code += " #{name}"
             end
@@ -231,38 +232,38 @@ class Expression
             code += " #{op.op_list[0]}"
           end
           code += " #{op.op_list[1]}"
-          code += make_action([1, op.op_list[1]])
+          code += make_yacc_action([1, op.op_list[1]])
 
         when :binary
-          case opclass.assoc
+          case opgroup.assoc
           when :nonassoc
-            op1 = opclass.prename
-            op2 = opclass.prename
+            op1 = opgroup.prename
+            op2 = opgroup.prename
           when :left
             op1 = name
-            op2 = opclass.prename
+            op2 = opgroup.prename
           when :right
-            op1 = opclass.prename
+            op1 = opgroup.prename
             op2 = name
           end
 
           code += op.op_list[0].instance_of?(Integer) ? " #{op1}" : " #{op.op_list[0]}"
           code += " #{op.op_list[1]}"
           code += op.op_list[2].instance_of?(Integer) ? " #{op2}" : " #{op.op_list[2]}"
-          code += make_action([1, op.op_list[1], 1])
+          code += make_yacc_action([1, op.op_list[1], 1])
 
         when :ternary
-          case opclass.assoc
+          case opgroup.assoc
           when :nonassoc
-            op1 = opclass.prename
-            op2 = opclass.prename
-            op3 = opclass.prename
+            op1 = opgroup.prename
+            op2 = opgroup.prename
+            op3 = opgroup.prename
           when :left
             op1 = name
             op2 = name
-            op3 = opclass.prename
+            op3 = opgroup.prename
           when :right
-            op1 = opclass.prename
+            op1 = opgroup.prename
             op2 = name
             op3 = name
           end
@@ -272,7 +273,7 @@ class Expression
           code += op.op_list[2].instance_of?(Integer) ? " #{op2}" : " #{op.op_list[2]}"
           code += " #{op.op_list[3]}"
           code += op.op_list[4].instance_of?(Integer) ? " #{op3}" : " #{op.op_list[4]}"
-          code += make_action([1, op.op_list[1], 1, op.op_list[3], 1])
+          code += make_yacc_action([1, op.op_list[1], 1, op.op_list[3], 1])
         end
         code += "\n"
       end
@@ -287,27 +288,25 @@ class Expression
       else
         code += "  | #{x}" if i != 0
       end
-      code += make_action([x]);
+      code += make_yacc_action([x]);
       code += "\n"
     end
     code += "  | '(' expression ')'"
-    code += make_action(["(", 1, ")"])
+    code += make_yacc_action(["(", 1, ")"])
     code += "\n  ;\n\n%%\n"
     
   end
 
-  def make_yacc_footer()
+  def make_yacc_subroutine()
     code = "#include \"lex.yy.c\"\n\n"
     code += "int main(void){\n"
     code += "  if(yyparse()==0){\n"
-    code += "    printf(\"parse is sucsessfull.\\n\");\n"
+    code += "    printf(\"parse is successfull.\\n\");\n"
     code += "  }else{\n"
     code += "    return -1;\n  }\n\n"
-    if @acheck
+    if @action == :tree
       code += "  dcode = (char*)calloc(1, sizeof(char));\n"
       code += "  code_append(&dcode, \"graph type{\\n\");\n"
-      code += "  code_append(&dcode, \"dpi=\\\"200\\\";\\n\");\n"
-      code += "  code_append(&dcode, \"node [fontname=\\\"DejaVu Serif Italic\\\"];\\n\");\n"
       code += "  if(drawGraph(tree) == 0){\n"
       code += "    printf(\"file output complete.\\n\");\n"
       code += "  }else{\n"
@@ -315,8 +314,7 @@ class Expression
       code += "  }\n"
       code += "  code_append(&dcode, \"}\");\n\n"
       code += "  FILE *fp;\n"
-      code += "  char *filename = \"tree.dot\";\n"
-      code += "  fp = fopen(filename, \"w\");\n"
+      code += "  fp = fopen(\"tree.dot\", \"w\");\n"
       code += "  fputs(dcode, fp);\n"
       code += "  fclose(fp);\n\n"
     end
