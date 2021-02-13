@@ -1,4 +1,4 @@
-class HiglyParser
+class Parser
 
 rule
 expression
@@ -6,9 +6,9 @@ expression
   
 options
   :
-  | dassoc options
-  | action options
-  | nonterm options 
+  | options dassoc
+  | options action
+  | options nonterm 
  
 action
   : ACTION '=' action_names { @action = val[2] }
@@ -103,6 +103,7 @@ def parse(f)
   @nonterms = Hash.new
   @default_assoc = :left
   @action = :true
+  t = []
 
   f.each do |line|
     line.strip!
@@ -110,22 +111,12 @@ def parse(f)
       case line
       when /\A<expression>/
         @q << [:EXP, $&]
-      when /\Aleft/
-        @q << [:LEFT, $&]
-      when /\Atree/
-        @q << [:TREE, $&]
       when /\A%action/
         @q << [:ACTION, $&]
       when /\A%assoc/
         @q << [:ASSOC, $&]
       when /\A%operator/
         @q << [:OPERATOR, $&]
-      when /\Aright/
-        @q << [:RIGHT, $&]
-      when /\Anonassoc/
-        @q << [:NONASSOC, $&]
-      when /\A_/
-        @q << ['_', $&]
       when /\A@/
         @q << [:OP, $&]
       when /\A'([[^']&&\S]*)'/
@@ -147,7 +138,20 @@ def parse(f)
       when /\A\|/
         @q << ['|', $&]
       when /\A[a-zA-Z_]\w*/
-        @q << [:IDENTIFIER, $&]
+        case $&
+        when '_'
+          @q << ['_', '_']
+        when 'tree'
+          @q << [:TREE, 'tree']
+        when 'left'
+          @q << [:LEFT, 'left']
+        when 'right'
+          @q << [:RIGHT, 'right']
+        when 'nonassoc'
+          @q << [:NONASSOC, 'nonassoc']
+        else
+          @q << [:IDENTIFIER, $&]
+        end
       when /\A\S+/
         @q << [:OTHER, $&]
       when /\A\s+/
@@ -159,7 +163,7 @@ def parse(f)
   @q << [false, '$']
   do_parse
 
-  prename = "primaryExpression"
+  prename = "atom"
   tmp = []
   @opgroups.each do |v|
     v.prename = prename
@@ -206,7 +210,7 @@ end
 
 ---- footer
 
-parser = HiglyParser.new
+parser = Parser.new
 if ARGV[0] then
   File.open(ARGV[0]) do |f|
     parser.parse f

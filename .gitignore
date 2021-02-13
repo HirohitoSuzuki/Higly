@@ -1,4 +1,4 @@
-./
+./*
 !higly_expression.rb
 !higly_racc.y
 !hoge.higly

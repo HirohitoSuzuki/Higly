@@ -42,7 +42,8 @@
 "&="  { return(OP19); }
 "^="  { return(OP20); }
 "|="  { return(OP21); }
-[a-zA-Z_]([a-zA-Z_]|[0-9])*  { return (IDENTIFIER);}
-[0-9]+"."[0-9]+              { return(FLOAT_LITERAL); }
-0 | [1-9][0-9]*              { return(INT_LITERAL); }
-\"[^\"\n]*\"                 { return(STRING_LITERAL); }
+{[a-zA-Z_]}({[a-zA-Z_]}|{[0-9]})*  { return (IDENTIFIER);}
+[1-9]{[0-9]}*  { return(INT_LITERAL); }
+"0"  { return(INT_LITERAL); }
+{[0-9]}+"."{[0-9]}+  { return(FLOAT_LITERAL); }
+[a-zA-Z_]?\"(\\.|[^\\"\n])*\"  { return(STRING_LITERAL); }

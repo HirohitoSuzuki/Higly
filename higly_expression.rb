@@ -8,18 +8,18 @@ class Expression
   def make_lex
     code = "%%\n"
     t = @expr_tokens.sort_by do |_, v|
-      v =~ /\d+/
-      $&.to_i
+      v =~ /\AOP(\d+)/
+      $1.to_i
     end.to_h
     t.each do |key, value|
       code += "\"#{key}\"  { return(#{value}); }\n"
     end
 
-    code += "{[a-zA-Z_]}({[a-zA-Z_]}|{[0-9]})*  { return (IDENTIFIER);}\n"
-    code += "[1-9]{[0-9]}*  { return(INT_LITERAL); }\n"
-    code += "\"0\"  { return(INT_LITERAL); }\n"
-    code += "{[0-9]}+\".\"{[0-9]}+  { return(FLOAT_LITERAL); }\n"
-    code += "[a-zA-Z_]?\\\"(\\\\.|[^\\\\\"\\n])*\\\"  { return(STRING_LITERAL); }\n"
+    code += "[a-zA-Z_]([a-zA-Z_]|[0-9])*  { return (IDENTIFIER);}\n"
+    code += "0                            { return(INT_LITERAL); }\n"
+    code += "[1-9][0-9]*                  { return(INT_LITERAL); }\n"
+    code += "[0-9]+\".\"[0-9]+              { return(FLOAT_LITERAL); }\n"
+    code += "\\\"[^\\\"\\n]*\\\"                 { return(STRING_LITERAL); }\n"
 
     code
   end
@@ -38,7 +38,7 @@ class Expression
     end
     code += "\n"
 
-    code += "%token IDENTIFIER INT_LITERAL FLOAT_LITERAL STRING_LITERAL\n"
+    code += "%token IDENTIFIER FLOAT_LITERAL INT_LITERAL STRING_LITERAL\n"
 
     if @action == :tree
       code += "%{\n"
@@ -66,7 +66,7 @@ class Expression
       code += "  return n;\n"
       code += "}\n"
       code += "\n"
-      code += "int code_append(char** s1, char* s2){\n"
+      code += "int codeAppend(char** s1, char* s2){\n"
       code += "  int size = strlen(*s1) + strlen(s2);\n"
       code += "  char* tmp;\n"
       code += "  tmp = (char*)realloc(*s1, sizeof(char) * (size+1));\n"
@@ -111,32 +111,32 @@ class Expression
       code += "    snprintf(ctmp[i], 15, \"symbol%d\", child_symbol_num[i]);\n"
       code += "  }\n"
       code += "\n"
-      code += "  code_append(&dcode, tmp);\n"
+      code += "  codeAppend(&dcode, tmp);\n"
       code += "  if(child_num != 0){\n"
-      code += "    code_append(&dcode, \" -- \");\n"
-      code += "    code_append(&dcode, ctmp[0]);\n"
+      code += "    codeAppend(&dcode, \" -- \");\n"
+      code += "    codeAppend(&dcode, ctmp[0]);\n"
       code += "    if(child_num >= 2){\n"
       code += "      for(i=1;i<child_num;i++){\n"
-      code += "        code_append(&dcode, \", \");\n"
-      code += "        code_append(&dcode, ctmp[i]);\n"
+      code += "        codeAppend(&dcode, \", \");\n"
+      code += "        codeAppend(&dcode, ctmp[i]);\n"
       code += "      }\n"
       code += "    }\n"
       code += "  }\n"
-      code += "  code_append(&dcode, \";\\n\");\n"
+      code += "  codeAppend(&dcode, \";\\n\");\n"
       code += "  //\"symbol1 -- symbol2, symbol3;\"\n"
       code += "\n"
       code += "  if(child_num != 0){\n"
-      code += "    code_append(&dcode, tmp);\n"
-      code += "    code_append(&dcode, \"[label = \\\"\");\n"
-      code += "    code_append(&dcode, t->name);\n"
-      code += "    code_append(&dcode, \"\\\"];\\n\");\n"
+      code += "    codeAppend(&dcode, tmp);\n"
+      code += "    codeAppend(&dcode, \"[label = \\\"\");\n"
+      code += "    codeAppend(&dcode, t->name);\n"
+      code += "    codeAppend(&dcode, \"\\\"];\\n\");\n"
       code += "    //\"symbol1 = [label = \"+\"];\"\n"
       code += "\n"
       code += "    for(i=0;i<child_num;i++){\n"
-      code += "      code_append(&dcode, ctmp[i]);\n"
-      code += "      code_append(&dcode, \"[label = \\\"\");\n"
-      code += "      code_append(&dcode, child_name[i]);\n"
-      code += "      code_append(&dcode, \"\\\"];\\n\");\n"
+      code += "      codeAppend(&dcode, ctmp[i]);\n"
+      code += "      codeAppend(&dcode, \"[label = \\\"\");\n"
+      code += "      codeAppend(&dcode, child_name[i]);\n"
+      code += "      codeAppend(&dcode, \"\\\"];\\n\");\n"
       code += "      //\"symbol2 = [label = \"identifier\"];\"\n"
       code += "    }\n"
       code += "  }\n"
@@ -280,9 +280,9 @@ class Expression
       code += "  ;\n\n"
     end
     
-    code += "primaryExpression\n"
-    primary_list = ["IDENTIFIER", "INT_LITERAL", "FLOAT_LITERAL", "STRING_LITERAL"]
-    primary_list.each_with_index do |x, i|
+    code += "atom\n"
+    atom_list = ["IDENTIFIER", "INT_LITERAL", "FLOAT_LITERAL", "STRING_LITERAL"]
+    atom_list.each_with_index do |x, i|
       if i == 0
         code += "  : #{x}"
       else
@@ -293,12 +293,12 @@ class Expression
     end
     code += "  | '(' expression ')'"
     code += make_yacc_action(["(", 1, ")"])
-    code += "\n  ;\n\n%%\n"
+    code += "\n  ;\n\n"
     
   end
 
   def make_yacc_subroutine()
-    code = "#include \"lex.yy.c\"\n\n"
+    code = "%%\n#include \"lex.yy.c\"\n\n"
     code += "int main(void){\n"
     code += "  if(yyparse()==0){\n"
     code += "    printf(\"parse is successfull.\\n\");\n"
@@ -306,13 +306,13 @@ class Expression
     code += "    return -1;\n  }\n\n"
     if @action == :tree
       code += "  dcode = (char*)calloc(1, sizeof(char));\n"
-      code += "  code_append(&dcode, \"graph type{\\n\");\n"
+      code += "  codeAppend(&dcode, \"graph type{\\n\");\n"
       code += "  if(drawGraph(tree) == 0){\n"
       code += "    printf(\"file output complete.\\n\");\n"
       code += "  }else{\n"
       code += "    printf(\"file output error.\\n\");\n"
       code += "  }\n"
-      code += "  code_append(&dcode, \"}\");\n\n"
+      code += "  codeAppend(&dcode, \"}\");\n\n"
       code += "  FILE *fp;\n"
       code += "  fp = fopen(\"tree.dot\", \"w\");\n"
       code += "  fputs(dcode, fp);\n"

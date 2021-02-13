@@ -1,144 +1,164 @@
-%token ++ -- ~ ! +
-%token - * / % <<
-%token >> >>> < > <=
-%token >= instanceof == =! &
-%token ^ | && || :
-%token ? = += -= *=
-%token /= %= <<= >>= >>>=
-%token &= ^= |=
-%token IDENTIFIER INT_LITERAL FLOAT_LITERAL STRING_LITERAL
+%token '~' '!' '+' '-' '*'
+%token '/' '%' OP1 OP2 OP3
+%token '<' '>' OP4 OP5 INSTANCEOF
+%token OP6 OP7 '&' '^' '|'
+%token OP8 OP9 '?' ':' '='
+%token OP10 OP11 OP12 OP13 OP14
+%token OP15 OP16 OP17 OP18 OP19
+%token OP20
+%token IDENTIFIER FLOAT_LITERAL INT_LITERAL STRING_LITERAL
+%token INC_OP DEC_OP INT
 
 %%
 
-primaryExpression
+expression
+  : assignExpression
+  ;
+
+assignExpression
+  : leftHandSide '=' assignExpression
+  | leftHandSide OP10 assignExpression
+  | leftHandSide OP11 assignExpression
+  | leftHandSide OP12 assignExpression
+  | leftHandSide OP13 assignExpression
+  | leftHandSide OP14 assignExpression
+  | leftHandSide OP15 assignExpression
+  | leftHandSide OP16 assignExpression
+  | leftHandSide OP17 assignExpression
+  | leftHandSide OP18 assignExpression
+  | leftHandSide OP19 assignExpression
+  | leftHandSide OP20 assignExpression
+  | conditionalExpression
+  ;
+
+leftHandSide
+  : Name
+  ;
+
+conditionalExpression
+  : conditionalOrExpression '?' expression ':' conditionalExpression
+  | conditionalOrExpression
+  ;
+
+conditionalOrExpression
+  : conditionalOrExpression OP9 conditionalAndExpression
+  | conditionalAndExpression
+  ;
+
+conditionalAndExpression
+  : conditionalAndExpression OP8 inclusiveOrExpression
+  | inclusiveOrExpression
+  ;
+
+inclusiveOrExpression
+  : inclusiveOrExpression '|' exclusiveOrExpression
+  | exclusiveOrExpression
+  ;
+
+exclusiveOrExpression
+  : exclusiveOrExpression '^' andExpression
+  | andExpression
+  ;
+
+andExpression
+  : andExpression '&' equalityExpression
+  | equalityExpression
+  ;
+
+equalityExpression
+  : equalityExpression OP6 relationalExpression
+  | equalityExpression OP7 relationalExpression
+  | relationalExpression
+  ;
+
+relationalExpression
+  : relationalExpression '<' shiftExpression
+  | relationalExpression '>' shiftExpression
+  | relationalExpression OP4 shiftExpression
+  | relationalExpression OP5 shiftExpression
+  | relationalExpression INSTANCEOF referenceType
+  | shiftExpression
+  ;
+
+referenceType
+  : Name
+  ;
+
+shiftExpression
+  : shiftExpression OP1 additiveExpression
+  | shiftExpression OP2 additiveExpression
+  | shiftExpression OP3 additiveExpression
+  | additiveExpression
+  ;
+
+additiveExpression
+  : additiveExpression '+' multiplecativeExpression
+  | additiveExpression '-' multiplecativeExpression
+  | multiplecativeExpression
+  ;
+
+multiplecativeExpression
+  : multiplecativeExpression '*' unaryExpression
+  | multiplecativeExpression '/' unaryExpression
+  | multiplecativeExpression '%' unaryExpression
+  | unaryExpression
+  ;
+
+unaryExpression
+  : preIncrementExpression
+  | preDecrementExpression
+  | '+' unaryExpression
+  | '-' unaryExpression
+  | unaryExpressionNotPlusMinus
+  ;
+
+preIncrementExpression
+  : INC_OP unaryExpression
+  ;
+
+preDecrementExpression
+  : DEC_OP unaryExpression
+  ;
+
+unaryExpressionNotPlusMinus
+  : '~' unaryExpression
+  | '!' unaryExpression
+  | castExpression
+  | postFixExpression
+  ;
+
+castExpression
+  : '(' primitiveType ')' unaryExpression
+  ;
+
+primitiveType
+  : INT
+  ;
+
+postFixExpression
+  : Name
+  | postIncrementExpression
+  | postDecrementExpression
+  | atom
+  ;
+
+postIncrementExpression
+  : postFixExpression INC_OP
+  ;
+
+postDecrementExpression
+  : postFixExpression DEC_OP
+  ;
+
+Name
   : IDENTIFIER
-  | INT_LITERAL
+  ;
+
+atom
+  : INT_LITERAL
   | FLOAT_LITERAL
   | STRING_LITERAL
   | '(' expression ')'
-  ;
-
-PostFixExpression
-  : Name
-  | PostIncrementExpression
-  | PostDecrementExpression
-  | primaryExpression
-  ;
-
-PostIncrementExpression
-  : PostFixExpression OP1
-  ;
-
-PostDecrementExpression
-  : PostFixExpression OP2
-  ;
-
-UnaryExpressionNotPlusMinus
-  : '~' UnaryExpression
-  | '!' UnaryExpression
-  | CastExpression(後で書く)
-  | PostFixExpression
-  ;
-
-UnaryExpression
-  : '+' UnaryExpression
-  | '-' UnaryExpression
-  | PreIncrementExpression
-  | PreDecrementExpression
-  | UnaryExpressionNotPlusMinus
-  ;
-
-PreIncrementExpression
-  : OP1 UnaryExpression
-  ;
-
-PreDecrementExpression
-  : OP2 UnaryExpression
-  ;
-
-MultiplecativeExpression
-  : MultiplecativeExpression '*' UnaryExpression
-  | MultiplecativeExpression '/' UnaryExpression
-  | MultiplecativeExpression '%' UnaryExpression
-  | UnaryExpression
-  ;
-
-AdditiveExpression
-  : AdditiveExpression '+' MultiplecativeExpression
-  | AdditiveExpression '-' MultiplecativeExpression
-  | MultiplecativeExpression
-  ;
-
-ShiftExpression
-  : ShiftExpression OP3 AdditiveExpression
-  | ShiftExpression OP4 AdditiveExpression
-  | ShiftExpression OP5 AdditiveExpression
-  | AdditiveExpression
-  ;
-
-RelationalExpression
-  : RelationalExpression '<' ShiftExpression
-  | RelationalExpression '>' ShiftExpression
-  | RelationalExpression OP6 ShiftExpression
-  | RelationalExpression OP7 ShiftExpression
-  | RelationalExpression INSTANCEOF ReferenceType
-  | ShiftExpression
-  ;
-
-EqualityExpression
-  : EqualityExpression OP8 RelationalExpression
-  | EqualityExpression OP9 RelationalExpression
-  | RelationalExpression
-  ;
-
-BitwiseAndExpression
-  : BitwiseAndExpression '&' EqualityExpression
-  | EqualityExpression
-  ;
-
-BitwiseXorExpression
-  : BitwiseXorExpression '^' BitwiseAndExpression
-  | BitwiseAndExpression
-  ;
-
-BitwiseOrExpression
-  : BitwiseOrExpression '|' BitwiseXorExpression
-  | BitwiseXorExpression
-  ;
-
-ConditionalAndExpression
-  : ConditionalAndExpression OP10 BitwiseOrExpression
-  | BitwiseOrExpression
-  ;
-
-ConditionalOrExpression
-  : ConditionalOrExpression OP11 ConditionalAndExpression
-  | ConditionalAndExpression
-  ;
-
-ConditionalExpression
-  : ConditionalOrExpression '?' expression ':' ConditionalExpression
-  | ConditionalOrExpression
-  ;
-
-AssignExpression
-  : LeftHandSide '=' AssignExpression
-  | LeftHandSide OP12 AssignExpression
-  | LeftHandSide OP13 AssignExpression
-  | LeftHandSide OP14 AssignExpression
-  | LeftHandSide OP15 AssignExpression
-  | LeftHandSide OP16 AssignExpression
-  | LeftHandSide OP17 AssignExpression
-  | LeftHandSide OP18 AssignExpression
-  | LeftHandSide OP19 AssignExpression
-  | LeftHandSide OP20 AssignExpression
-  | LeftHandSide OP21 AssignExpression
-  | LeftHandSide OP22 AssignExpression
-  | ConditionalExpression
-  ;
-
-expression
-  : AssignExpression
   ;
 
 %%
@@ -146,7 +166,7 @@ expression
 
 int main(void){
   if(yyparse()==0){
-    printf("parse is sucsessfull.\n");
+    printf("parse is successfull.\n");
   }else{
     return -1;
   }

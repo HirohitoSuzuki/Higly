@@ -7,7 +7,7 @@
 %token ':' '=' OP12 OP13 OP14
 %token OP15 OP16 OP17 OP18 OP19
 %token OP20 OP21 ','
-%token IDENTIFIER FLOAT_LITERAL INT_LITERAL STRING_LITERAL
+%token IDENTIFIER INT_LITERAL FLOAT_LITERAL STRING_LITERAL
 %{
 #include <string.h>
 #include <stdlib.h>
@@ -140,7 +140,7 @@ assignExpression
   ;
 
 conditionExpression
-  : boolOr '?' conditionExpression ':' conditionExpression  { $$ = makeNode("'?'':'", $1, $3, $5); }
+  : boolOr '?' expression ':' conditionExpression  { $$ = makeNode("'?'':'", $1, $3, $5); }
   | boolOr
   ;
 
@@ -196,9 +196,14 @@ additiveExpression
   ;
 
 multiplecativeExpression
-  : multiplecativeExpression '*' unaryExpression  { $$ = makeNode("'*'", $1, $3, NULL); }
-  | multiplecativeExpression '/' unaryExpression  { $$ = makeNode("'/'", $1, $3, NULL); }
-  | multiplecativeExpression '%' unaryExpression  { $$ = makeNode("'%'", $1, $3, NULL); }
+  : multiplecativeExpression '*' castExpression  { $$ = makeNode("'*'", $1, $3, NULL); }
+  | multiplecativeExpression '/' castExpression  { $$ = makeNode("'/'", $1, $3, NULL); }
+  | multiplecativeExpression '%' castExpression  { $$ = makeNode("'%'", $1, $3, NULL); }
+  | castExpression
+  ;
+
+castExpression
+  : '(' type_name ')' castExpression  { $$ = makeNode("'(' type_name ')'", $2, NULL, NULL); }
   | unaryExpression
   ;
 
@@ -206,12 +211,12 @@ unaryExpression
   : OP1 unaryExpression  { $$ = makeNode("OP1", $2, NULL, NULL); }
   | OP2 unaryExpression  { $$ = makeNode("OP2", $2, NULL, NULL); }
   | SIZEOF unaryExpression  { $$ = makeNode("SIZEOF", $2, NULL, NULL); }
-  | '&' unaryExpression  { $$ = makeNode("'&'", $2, NULL, NULL); }
-  | '*' unaryExpression  { $$ = makeNode("'*'", $2, NULL, NULL); }
-  | '+' unaryExpression  { $$ = makeNode("'+'", $2, NULL, NULL); }
-  | '-' unaryExpression  { $$ = makeNode("'-'", $2, NULL, NULL); }
-  | '~' unaryExpression  { $$ = makeNode("'~'", $2, NULL, NULL); }
-  | '!' unaryExpression  { $$ = makeNode("'!'", $2, NULL, NULL); }
+  | '&' castExpression  { $$ = makeNode("'&'", $2, NULL, NULL); }
+  | '*' castExpression  { $$ = makeNode("'*'", $2, NULL, NULL); }
+  | '+' castExpression  { $$ = makeNode("'+'", $2, NULL, NULL); }
+  | '-' castExpression  { $$ = makeNode("'-'", $2, NULL, NULL); }
+  | '~' castExpression  { $$ = makeNode("'~'", $2, NULL, NULL); }
+  | '!' castExpression  { $$ = makeNode("'!'", $2, NULL, NULL); }
   | postfixExpression
   ;
 
@@ -220,15 +225,16 @@ postfixExpression
   | postfixExpression OP2  { $$ = makeNode("OP2", $1, NULL, NULL); }
   | postfixExpression '[' expression ']'  { $$ = makeNode("'[' expression ']'", $1, NULL, NULL); }
   | postfixExpression '(' ')'  { $$ = makeNode("'(' ')'", $1, NULL, NULL); }
+  | postfixExpression '(' argumentExpressionList ')'  { $$ = makeNode("'(' argumentExpressionList ')'", $1, NULL, NULL); }
   | postfixExpression '.' IDENTIFIER  { $$ = makeNode("'.'", $1, $3, NULL); }
   | postfixExpression OP3 IDENTIFIER  { $$ = makeNode("OP3", $1, $3, NULL); }
-  | atom
+  | primaryExpression
   ;
 
 atom
   : IDENTIFIER  { $$ = makeNode("IDENTIFIER", NULL, NULL, NULL); }
-  | FLOAT_LITERAL  { $$ = makeNode("FLOAT_LITERAL", NULL, NULL, NULL); }
   | INT_LITERAL  { $$ = makeNode("INT_LITERAL", NULL, NULL, NULL); }
+  | FLOAT_LITERAL  { $$ = makeNode("FLOAT_LITERAL", NULL, NULL, NULL); }
   | STRING_LITERAL  { $$ = makeNode("STRING_LITERAL", NULL, NULL, NULL); }
   | '(' expression ')'  { $$ = makeNode("'('')'", $2, NULL, NULL); }
   ;

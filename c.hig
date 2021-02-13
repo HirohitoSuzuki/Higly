@@ -1,81 +1,101 @@
 <expression>
 %assoc = left
-%action = tree
-%operator = 'type_name', 'argumentExpressionList', 'expression'
+%operator = 'type_name_TODO', 'argument_expression_list_TODO', 'expression'
 
-postfixExpression
-  : _ '++' | _ '--' | _ '[' 'expression' ']' | _ '(' ')'
-  | _ '(' 'argumentExpressionList' ')'
+postfix_expression
+  : _ '[' 'expression' ']'
+  | _ '(' ')'
+  | _ '(' 'argument_expression_list_TODO' ')'
   | _ '.' IDENTIFIER
   | _ '->' IDENTIFIER
+  | _ '++'
+  | _ '--'
+  | conpound_literal_TODO
   ;
 
-unaryExpression(right)
-  : '++' _ | '--' _
+unary_expression(right)
+  : '++' _
+  | '--' _
+  | '&' cast_expression
+  | '*' cast_expression
+  | '+' cast_expression
+  | '-' cast_expression
+  | '~' cast_expression
+  | '!' cast_expression
   | 'sizeof' _
-  | '&' castExpression
-  | '*' castExpression
-  | '+' castExpression
-  | '-' castExpression
-  | '~' castExpression
-  | '!' castExpression
+  | sizeof_typename_TODO
   ;
 
-castExpression(right)
-  : '(' 'type_name' ')' _
+cast_expression(right)
+  : '(' 'type_name_TODO' ')' _
   ;
 
-multiplecativeExpression
-  : _ '*' _ | _ '/' _ | _ '%' _
+multiplecative_expression
+  : _ '*' _
+  | _ '/' _
+  | _ '%' _
   ;
 
-additiveExpression
-  : _ '+' _ | _ '-' _
+additive_expression
+  : _ '+' _ 
+  | _ '-' _
   ;
 
-shiftExpression
-  : _ '<<' _ | _ '>>' _
+shift_expression
+  : _ '<<' _
+  | _ '>>' _
   ;
 
-relationalExpression
-  : _ '<' _ | _ '>' _ | _ '<=' _ | _ '>=' _
+relational_expression
+  : _ '<' _
+  | _ '>' _
+  | _ '<=' _
+  | _ '>=' _
   ;
 
-equalityExpression
-  : _ '==' _ | _ '=!' _
+equality_expression
+  : _ '==' _
+  | _ '=!' _
   ;
 
-bitwiseAnd
+and_expression
   : _ '&' _
   ;
 
-bitwiseXor
+exclusive_or_expression
   : _ '^' _
   ;
 
-bitwiseOr
+inclusive_or_expression
   : _ '|' _
   ;
 
-boolAnd
+logical_and_expression
   : _ '&&' _
   ;
 
-boolOr
+logical_or_expression
   : _ '||' _
   ;
 
-conditionExpression(right)
+conditional_expression(right)
   : _ '?' expression ':' _
   ;
 
-assignExpression(right)
-  : unaryExpression '=' _ | unaryExpression '+=' _ | unaryExpression '-=' _
-  | unaryExpression '*=' _ | unaryExpression '/=' _ | unaryExpression '%=' _
-  | unaryExpression '<<=' _ | unaryExpression '>>=' _ | unaryExpression '&=' _
-  | unaryExpression '^=' _ | unaryExpression '|=' _
+assignment_expression(right)
+  : unary_expression '=' _ 
+  | unary_expression '*=' _ 
+  | unary_expression '/=' _ 
+  | unary_expression '%=' _
+  | unary_expression '+=' _ 
+  | unary_expression '-=' _
+  | unary_expression '<<=' _ 
+  | unary_expression '>>=' _ 
+  | unary_expression '&=' _
+  | unary_expression '^=' _ 
+  | unary_expression '|=' _
   ;
 
-commaExpression
+comma_expression
   : _ ',' _
   ;

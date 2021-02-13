@@ -1,68 +1,76 @@
 <expression>
 %assoc = left
 %action = tree
+%operator = 'expression'
 
-commaExpression
-  : x","x
+postfixExpression
+  : _ '++' | _ '--' | _ '[' 'expression' ']' | _ '(' ')'
+  | _ '.' IDENTIFIER
+  | _ '->' IDENTIFIER
   ;
 
-assignExpression(right)
-  : x"="x | x"+="x | x"-="x | x"*="x | x"/="x | x"%="x | x"<<="x
-  | x">>="x | x"&="x | x"^="x | x"|="x
+unaryExpression(right)
+  : '++' _ | '--' _
+  | 'sizeof' _
+  | '&' _
+  | '*' _
+  | '+' _
+  | '-' _
+  | '~' _
+  | '!' _
   ;
 
-conditionExpression
-  : x"?"x":"x
-  ;
-
-boolOr
-  : x"||"x
-  ;
-
-boolAnd
-  : x"&&"x
-  ;
-
-bitwiseOr
-  : x"|"x
-  ;
-
-bitwiseXor
-  : x"^"x
-  ;
-
-bitwiseAnd
-  : x"&"x
-  ;
-
-equaltiveExpression
-  : x"=="x | x"=!"x
-  ;
-
-rerativeExpression(%nonassoc)
-  : x"<"x | x">"x | x"<="x | x">="x
+multiplecativeExpression
+  : _ '*' _ | _ '/' _ | _ '%' _
   ;
 
 additiveExpression
-  : x"+"x | x"-"x
+  : _ '+' _ | _ '-' _
   ;
 
-multplecativeExpression
-  : x"*"x | x"/"x | x"%"x
+shiftExpression
+  : _ '<<' _ | _ '>>' _
   ;
 
-castExpression
-  : "type_name" x
+relationalExpression
+  : _ '<' _ | _ '>' _ | _ '<=' _ | _ '>=' _
   ;
 
-unaryExpression
-  : "++"x | "--"x | "sizeof"x | "~"x | "!"x | "+"x | "-"x | "&"x | "*"x
+equalityExpression
+  : _ '==' _ | _ '=!' _
   ;
 
-paClass.postfixExpression
-  : x"++" | x"--"
+bitwiseAnd
+  : _ '&' _
   ;
-  
-paClass.awaitExpression
-  : "await"x
+
+bitwiseXor
+  : _ '^' _
+  ;
+
+bitwiseOr
+  : _ '|' _
+  ;
+
+boolAnd
+  : _ '&&' _
+  ;
+
+boolOr
+  : _ '||' _
+  ;
+
+conditionExpression(right)
+  : _ '?' _ ':' _
+  ;
+
+assignExpression(right)
+  : unaryExpression '=' _ | unaryExpression '+=' _ | unaryExpression '-=' _
+  | unaryExpression '*=' _ | unaryExpression '/=' _ | unaryExpression '%=' _
+  | unaryExpression '<<=' _ | unaryExpression '>>=' _ | unaryExpression '&=' _
+  | unaryExpression '^=' _ | unaryExpression '|=' _
+  ;
+
+commaExpression
+  : _ ',' _
   ;

@@ -1,102 +1,129 @@
 <expression>
 %assoc = left
-%nonterm = "ReferenceType", "LeftHandSideExpression", "UpdateExpression",
-           "IdentifierName(todo)", "TemplateLiteral(todo)", "SuperProperty(todo)",
-           "MetaProperty(todo)", "UnaryExpression", "ArrowFunction(todo)",
-           "AsyncArrowFunction(todo)", "newArguments(todo)",
-           "CallExpression(todo)", "OptionalExpression(todo)",
-           "AssignmentExpression", "CoalesceExpression(todo)"
+%operator = 'expression'
 
-MemberExpression
-  : x "[" "expression" "]" | x "." "IdentifierName(todo)"
-  | x "TemplateLiteral(todo)" | "SuperProperty(todo)" 
-  | "MetaProperty(todo)" | "newArguments(todo)"
+memberExpression
+  : _ '[' 'expression' ']'
+  | _ '.' identifierName_TODO
+  | template_TODO
+  | superProperty_TODO 
+  | metaProperty_TODO
+  | newArguments_TODO
   ;
 
-NewExpression
-  : "new" x
+newExpression
+  : 'new' _
   ;
 
-LeftHandSideExpression
-  : "CallExpression(todo)" | "OptionalExpression(todo)"
+leftHandSideExpression
+  : callExpression_TODO
+  | optionalExpression_TODO
   ;
 
-UpdateExpression(nonassoc)
-  : x "++" | x "--"
-  | "++" "UnaryExpression" | "--" "UnaryExpression"
+updateExpression (nonassoc)
+  : _ '++'
+  | _ '--'
+  | '++' unaryExpression
+  | '--' unaryExpression
   ;
 
-UnaryExpression
-  : "!" x | "~" x | "+" x | "-" x
-  | "typeof" x | "void" x | "delete" x 
-  | "await" x
+unaryExpression
+  : 'delete' _ 
+  | 'void' _
+  | 'typeof' _
+  | '+' _
+  | '-' _
+  | '~' _
+  | '!' _
+  | 'await' _
   ;
 
-ExponentiationExpression(right)
-  : "UpdateExpression" "**" x
+exponentiationExpression (right)
+  : updateExpression '**' _
   ;
 
-MultiplicativeExpression
-  : x "*" x | x "/" x | x "%" x
+multiplicativeExpression
+  : _ '*' _
+  | _ '/' _
+  | _ '%' _
   ;
 
-AdditiveExpression
-  : x "+" x | x "-" x
+additiveExpression
+  : _ '+' _
+  | _ '-' _
   ;
 
-ShiftExpression
-  : x "<<" x | x ">>" x | x ">>>" x
+shiftExpression
+  : _ '<<' _
+  | _ '>>' _
+  | _ '>>>' _
   ;
 
-RelationalExpression
-  : x "<" x | x ">" x | x "<=" x | x ">=" x
-  | x "in" x | x "instanceof" x
+relationalExpression
+  : _ '<' _
+  | _ '>' _
+  | _ '<=' _
+  | _ '>=' _
+  | _ 'instanceof' _
+  | _ 'in' _
   ;
 
-EqualityExpression
-  : x "==" x | x "=!" x | x "===" x | x "!==" x
+equalityExpression
+  : _ '==' _
+  | _ '=!' _
+  | _ '===' _
+  | _ '!==' _
   ;
 
-BitwiseAndExpression
-  : x "&" x
+bitwiseAndExpression
+  : _ '&' _
   ;
 
-BitwiseXorExpression
-  : x "^" x
+bitwiseXorExpression
+  : _ '^' _
   ;
 
-BitwiseOrExpression
-  : x "|" x
+bitwiseOrExpression
+  : _ '|' _
   ;
 
-ConditionalAndExpression
-  : x "&&" x
+logicalAndExpression
+  : _ '&&' _
   ;
 
-ConditionalOrExpression
-  : x "||" x
+logicalOrExpression
+  : _ '||' _
   ;
 
-ShortCircuitExpression
-  : "CoalesceExpression(todo)"
+shortCircuitExpression
+  : coalesceExpression_TODO
   ;
 
-ConditionalExpression(right)
-  : x "?" "AssignmentExpression" ":" "AssignmentExpression"
+conditionalExpression (right)
+  : _ '?' assignmentExpression ':' assignmentExpression
   ;
 
-AssignExpression(right)
-  : "ArrowFunction(todo)" | "AsyncArrowFunction(todo)"
-  | "LeftHandSideExpression" "=" x | "LeftHandSideExpression" "+=" x | "LeftHandSideExpression" "-=" x
-  | "LeftHandSideExpression" "*=" x | "LeftHandSideExpression" "/=" x | "LeftHandSideExpression" "%=" x
-  | "LeftHandSideExpression" "<<=" x | "LeftHandSideExpression" ">>=" x | "LeftHandSideExpression" ">>>="x
-  | "LeftHandSideExpression" "&=" x | "LeftHandSideExpression" "^=" x | "LeftHandSideExpression" "|=" x
+assignmentExpression (right)
+  : yieldExpression_TODO
+  | arrowFunction_TODO
+  | asyncArrowFunction_TODO
+  | leftHandSideExpression '=' _
+  | leftHandSideExpression '*=' _
+  | leftHandSideExpression '/=' _
+  | leftHandSideExpression '%=' _
+  | leftHandSideExpression '+=' _
+  | leftHandSideExpression '-=' _
+  | leftHandSideExpression '<<=' _
+  | leftHandSideExpression '>>=' _
+  | leftHandSideExpression '>>>=' _
+  | leftHandSideExpression '&=' _
+  | leftHandSideExpression '^=' _
+  | leftHandSideExpression '|=' _
+  | leftHandSideExpression '**=' _
+  | leftHandSideExpression '||=' _
+  | leftHandSideExpression '??=' _
   ;
 
-AssignExpression.YieldExpression
-  : "yield" | "yield" x | "yield" "*" x 
-  ;
-
-CommaExpression
-  : x "," x
+commaExpression
+  : _ ',' _
   ;

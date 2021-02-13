@@ -1,86 +1,90 @@
 <expression>
 %assoc = left
-%nonterm = "expression", "LeftHandSide", "ReferenceType",
-           "PrimitiveType", "DimsOpt", "Name", "Dims",
-           "UnaryExpressionNotPlusMinus", "CastExpression(後で書く)",
-           "UnaryExpression"
 
-PostFixExpression
-  : "Name"
+postFixExpression
+  : Name_TODO
+  | postIncrementExpression_TODO
+  | postDecrementExpression_TODO
   ;
 
-PostFixExpression.PostIncrementExpression
-  : x "++"
+unaryExpressionNotPlusMinus (right)
+  : '~' unaryExpression
+  | '!' unaryExpression
+  | castExpression_TODO
   ;
 
-PostFixExpression.PostDecrementExpression
-  : x "--"
+unaryExpression (right)
+  : preIncrementExpression_TODO
+  | preDecrementExpression_TODO
+  | '+' _
+  | '-' _
   ;
 
-UnaryExpressionNotPlusMinus(right)
-  : "~" "UnaryExpression" | "!" "UnaryExpression" | "CastExpression(後で書く)"
+multiplecativeExpression
+  : _ '*' _
+  | _ '/' _
+  | _ '%' _
   ;
 
-UnaryExpression(right)
-  : "+" x | "-" x
+additiveExpression
+  : _ '+' _
+  | _ '-' _
   ;
 
-UnaryExpression.PreIncrementExpression
-  : "++" x
+shiftExpression
+  : _ '<<' _
+  | _ '>>' _
+  | _ '>>>' _
   ;
 
-UnaryExpression.PreDecrementExpression
-  : "--" x
+relationalExpression
+  : _ '<' _
+  | _ '>' _
+  | _ '<=' _
+  | _ '>=' _
+  | _ 'instanceof' referenceType_TODO
   ;
 
-MultiplecativeExpression
-  : x"*"x | x"/"x | x"%"x
+equalityExpression
+  : _ '==' _ 
+  | _ '=!' _
   ;
 
-AdditiveExpression
-  : x"+"x | x"-"x
+andExpression
+  : _ '&' _
   ;
 
-ShiftExpression
-  : x "<<" x | x ">>" x | x ">>>" x
+exclusiveOrExpression
+  : _ '^' _
   ;
 
-RelationalExpression
-  : x "<" x | x ">" x | x "<=" x | x ">=" x
-  | x "instanceof" "ReferenceType"
+inclusiveOrExpression
+  : _ '|' _
   ;
 
-EqualityExpression
-  : x "==" x | x "=!" x
+conditionalAndExpression
+  : _ '&&' _
   ;
 
-BitwiseAndExpression
-  : x "&" x
+conditionalOrExpression
+  : _ '||' _
   ;
 
-BitwiseXorExpression
-  : x "^" x
+conditionalExpression (right)
+  : _ '?' expression ':' _
   ;
 
-BitwiseOrExpression
-  : x "|" x
-  ;
-
-ConditionalAndExpression
-  : x "&&" x
-  ;
-
-ConditionalOrExpression
-  : x "||" x
-  ;
-
-ConditionalExpression(right)
-  : x "?" "expression" ":" x
-  ;
-
-AssignExpression(right)
-  : "LeftHandSide" "=" x | "LeftHandSide" "+=" x | "LeftHandSide" "-=" x
-  | "LeftHandSide" "*=" x | "LeftHandSide" "/=" x | "LeftHandSide" "%=" x
-  | "LeftHandSide" "<<=" x | "LeftHandSide" ">>=" x | "LeftHandSide" ">>>="x
-  | "LeftHandSide" "&=" x | "LeftHandSide" "^=" x | "LeftHandSide" "|=" x
+assignExpression (right)
+  : leftHandSide_TODO '=' _
+  | leftHandSide_TODO '+=' _
+  | leftHandSide_TODO '-=' _
+  | leftHandSide_TODO '*=' _
+  | leftHandSide_TODO '/=' _
+  | leftHandSide_TODO '%=' _
+  | leftHandSide_TODO '<<=' _
+  | leftHandSide_TODO '>>=' _
+  | leftHandSide_TODO '>>>=' _
+  | leftHandSide_TODO '&=' _ 
+  | leftHandSide_TODO '^=' _ 
+  | leftHandSide_TODO '|=' _
   ;

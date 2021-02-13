@@ -29,7 +29,7 @@ class Op
   attr_reader :kind, :op_list
 end
 
-class HiglyParser < Racc::Parser
+class Parser < Racc::Parser
 
 module_eval(<<'...end higly_racc.y/module_eval...', 'higly_racc.y', 95)
 attr_reader :opgroups, :expr_tokens, :action, :nonterms
@@ -43,6 +43,7 @@ def parse(f)
   @nonterms = Hash.new
   @default_assoc = :left
   @action = :true
+  t = []
 
   f.each do |line|
     line.strip!
@@ -50,22 +51,12 @@ def parse(f)
       case line
       when /\A<expression>/
         @q << [:EXP, $&]
-      when /\Aleft/
-        @q << [:LEFT, $&]
-      when /\Atree/
-        @q << [:TREE, $&]
       when /\A%action/
         @q << [:ACTION, $&]
       when /\A%assoc/
         @q << [:ASSOC, $&]
       when /\A%operator/
         @q << [:OPERATOR, $&]
-      when /\Aright/
-        @q << [:RIGHT, $&]
-      when /\Anonassoc/
-        @q << [:NONASSOC, $&]
-      when /\A_/
-        @q << ['_', $&]
       when /\A@/
         @q << [:OP, $&]
       when /\A'([[^']&&\S]*)'/
@@ -87,7 +78,20 @@ def parse(f)
       when /\A\|/
         @q << ['|', $&]
       when /\A[a-zA-Z_]\w*/
-        @q << [:IDENTIFIER, $&]
+        case $&
+        when '_'
+          @q << ['_', '_']
+        when 'tree'
+          @q << [:TREE, 'tree']
+        when 'left'
+          @q << [:LEFT, 'left']
+        when 'right'
+          @q << [:RIGHT, 'right']
+        when 'nonassoc'
+          @q << [:NONASSOC, 'nonassoc']
+        else
+          @q << [:IDENTIFIER, $&]
+        end
       when /\A\S+/
         @q << [:OTHER, $&]
       when /\A\s+/
@@ -99,7 +103,7 @@ def parse(f)
   @q << [false, '$']
   do_parse
 
-  prename = "primaryExpression"
+  prename = "atom"
   tmp = []
   @opgroups.each do |v|
     v.prename = prename
@@ -148,54 +152,52 @@ end
 ##### State transition tables begin ###
 
 racc_action_table = [
-    38,    38,    38,    37,    37,    37,    37,    37,    37,    36,
-    36,    36,    36,    36,    36,     8,     2,     8,     9,    10,
-     9,    10,     8,     3,     8,     9,    10,     9,    10,    41,
-    54,    11,    42,    42,    22,    14,    23,    27,    28,    29,
-    27,    28,    29,    18,    19,    20,    14,    25,    31,    40,
-    38,    38,    46,    31,    50,    38 ]
+    35,    35,    35,    34,    34,    34,    34,    34,     2,    33,
+    33,    33,    33,    33,    10,    34,    38,    11,    12,    39,
+    51,    33,     3,    39,    14,    19,     5,    20,    24,    25,
+    26,    24,    25,    26,    14,    16,    17,    18,    22,    28,
+    37,    35,    35,    43,    28,    47,    35 ]
 
 racc_action_check = [
-    22,    42,    50,    35,    43,    22,    42,    50,    51,    35,
-    43,    22,    42,    50,    51,     2,     0,     5,     2,     2,
-     5,     5,     6,     1,     7,     6,     6,     7,     7,    32,
-    52,     3,    32,    52,    14,     4,    14,    19,    19,    19,
-    23,    23,    23,     8,     9,    10,    12,    18,    20,    31,
-    34,    38,    39,    40,    46,    49 ]
+    19,    39,    47,    32,    40,    19,    39,    47,     0,    32,
+    40,    19,    39,    47,     4,    48,    29,     4,     4,    29,
+    49,    48,     1,    49,     4,    14,     3,    14,    17,    17,
+    17,    20,    20,    20,     6,    10,    11,    12,    16,    18,
+    28,    31,    35,    36,    37,    43,    46 ]
 
 racc_action_pointer = [
-    14,    23,    12,    31,    22,    14,    19,    21,    39,    40,
-    41,   nil,    33,   nil,    20,   nil,   nil,   nil,    42,    27,
-    40,   nil,    -8,    30,   nil,   nil,   nil,   nil,   nil,   nil,
-   nil,    40,    14,   nil,    42,   -10,   nil,   nil,    43,    35,
-    45,   nil,    -7,    -9,   nil,   nil,    40,   nil,   nil,    47,
-    -6,    -5,    15,   nil,   nil ]
+     6,    22,   nil,    26,    11,   nil,    21,   nil,   nil,   nil,
+    31,    32,    33,   nil,    11,   nil,    33,    18,    31,    -8,
+    21,   nil,   nil,   nil,   nil,   nil,   nil,   nil,    31,     1,
+   nil,    33,   -10,   nil,   nil,    34,    26,    36,   nil,    -7,
+    -9,   nil,   nil,    31,   nil,   nil,    38,    -6,     2,     5,
+   nil,   nil ]
 
 racc_action_default = [
-   -30,   -30,    -2,   -30,   -30,    -2,    -2,    -2,   -30,   -30,
-   -30,    55,    -1,   -16,   -30,    -3,    -4,    -5,   -30,   -30,
-   -30,   -15,   -30,   -30,    -6,    -7,    -8,   -12,   -13,   -14,
-    -9,   -11,   -30,   -19,   -21,   -30,   -26,   -27,   -28,   -30,
-   -30,   -17,   -30,   -23,   -22,   -29,   -30,   -10,   -20,   -24,
-   -30,   -30,   -30,   -25,   -18 ]
+   -30,   -30,    -2,   -30,   -30,    52,    -1,    -3,    -4,    -5,
+   -30,   -30,   -30,   -16,   -30,   -15,   -30,   -30,   -30,   -30,
+   -30,    -6,    -7,    -8,   -12,   -13,   -14,    -9,   -11,   -30,
+   -19,   -21,   -30,   -26,   -27,   -28,   -30,   -30,   -17,   -30,
+   -23,   -22,   -29,   -30,   -10,   -20,   -24,   -30,   -30,   -30,
+   -25,   -18 ]
 
 racc_goto_table = [
-    32,    30,    44,    13,    43,     1,    12,    24,    45,     4,
-    49,    21,    15,    16,    17,    48,    26,   nil,    53,    51,
-    39,    47,   nil,   nil,   nil,   nil,   nil,   nil,    52 ]
+    29,    27,    41,    23,    40,    13,    36,    15,    42,     1,
+    46,     4,     6,     7,     8,     9,    21,    45,    50,    48,
+    44,   nil,   nil,   nil,   nil,   nil,   nil,   nil,    49 ]
 
 racc_goto_check = [
-    11,     9,    13,    10,    14,     1,     3,     7,    14,     2,
-    13,    10,     2,     2,     2,    12,     8,   nil,    13,    14,
-     8,     9,   nil,   nil,   nil,   nil,   nil,   nil,    11 ]
+    11,     9,    13,     8,    14,    10,     8,    10,    14,     1,
+    13,     2,     3,     4,     5,     6,     7,    12,    13,    14,
+     9,   nil,   nil,   nil,   nil,   nil,   nil,   nil,    11 ]
 
 racc_goto_pointer = [
-   nil,     5,     7,     2,   nil,   nil,   nil,   -11,    -3,   -19,
-    -1,   -22,   -27,   -33,   -30 ]
+   nil,     9,     9,     8,     9,    10,    11,     0,   -14,   -17,
+     1,   -19,   -22,   -30,   -27 ]
 
 racc_goto_default = [
-   nil,   nil,   nil,   nil,     5,     6,     7,   nil,   nil,   nil,
-   nil,   nil,    33,    34,    35 ]
+   nil,   nil,   nil,   nil,   nil,   nil,   nil,   nil,   nil,   nil,
+   nil,   nil,    30,    31,    32 ]
 
 racc_reduce_table = [
   0, 0, :racc_error,
@@ -231,7 +233,7 @@ racc_reduce_table = [
 
 racc_reduce_n = 30
 
-racc_shift_n = 55
+racc_shift_n = 52
 
 racc_token_table = {
   false => 0,
@@ -493,10 +495,10 @@ def _reduce_none(val, _values, result)
   val[0]
 end
 
-end   # class HiglyParser
+end   # class Parser
 
 
-parser = HiglyParser.new
+parser = Parser.new
 if ARGV[0] then
   File.open(ARGV[0]) do |f|
     parser.parse f
