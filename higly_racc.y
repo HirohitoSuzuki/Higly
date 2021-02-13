@@ -2,7 +2,7 @@ class Parser
 
 rule
 expression
-  : EXP options expstmts
+  : EXP options expstmts { @opgroups.reverse! }
   
 options
   :
@@ -37,7 +37,7 @@ assoc
   | RIGHT  { result = :right }
 
 expstmts
-  : expstmts expstmt
+  : expstmt expstmts
   | expstmt
 
 expstmt
