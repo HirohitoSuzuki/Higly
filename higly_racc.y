@@ -2,7 +2,7 @@ class Parser
 
 rule
 expression
-  : EXP options expstmts { @opgroups.reverse! }
+  : EXP options expstmts
   
 options
   :
@@ -37,18 +37,18 @@ assoc
   | RIGHT  { result = :right }
 
 expstmts
-  : expstmt expstmts
-  | expstmt
+  : expstmt expstmts  { @opgroups << val[0] }
+  | expstmt  { @opgroups << val[0] }
 
 expstmt
   : IDENTIFIER ':' op_list ';'
-    { @opgroups << OpGroup.new(val[0], @default_assoc, val[2]) }
+    { result = OpGroup.new(val[0], @default_assoc, val[2]) }
   | IDENTIFIER '(' assoc ')' ':' op_list ';'
-    { @opgroups << OpGroup.new(val[0], val[2], val[5]) }
+    { result = OpGroup.new(val[0], val[2], val[5]) }
 
 op_list
   : op_def  { result = [val[0]] }
-  | op_list '|' op_def  { result = val[0]<<val[2] }
+  | op_list '|' op_def  { result = val[0] << val[2] }
 
 op_def
   : operand  { result = Op.new(:nonterm, val) }
@@ -117,16 +117,12 @@ def parse(f)
         @q << [:ASSOC, $&]
       when /\A%operator/
         @q << [:OPERATOR, $&]
-      when /\A@/
-        @q << [:OP, $&]
       when /\A'([[^']&&\S]*)'/
         @q << [:S_LITERAL, $1]
       when /\A\(/
         @q << ['(', $&]
       when /\A\)/
         @q << [')', $&]
-      when /\A\./
-        @q << ['.', $&]
       when /\A,/
         @q << [',', $&]
       when /\A;/
@@ -162,6 +158,8 @@ def parse(f)
   end
   @q << [false, '$']
   do_parse
+  token_store('(')
+  token_store(')')
 
   prename = "atom"
   tmp = []
@@ -223,7 +221,6 @@ if ARGV[0] then
     f1 = File.open("higly.l", "w")
     f2 = File.open("higly.y", "w")
   end
-
   
   exp = Expression.new(parser.expr_tokens, parser.opgroups, parser.action)
 
